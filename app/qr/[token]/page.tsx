@@ -1,13 +1,25 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { dataStore } from '@/lib/data/store';
 import { CheckCircle2, ShieldCheck, Clock, User, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function PublicQrHistoryPage({ params }: { params: Promise<{ token: string }> }) {
-  const resolvedParams = use(params);
-  const data = dataStore.getPublicTableHistory(resolvedParams.token);
+export default function PublicQrHistoryPage() {
+  const params = useParams();
+  const token = (params?.token as string) || '';
+  const [data, setData] = useState(() => dataStore.getPublicTableHistory(token));
+
+  useEffect(() => {
+    if (token) {
+      setData(dataStore.getPublicTableHistory(token));
+      const unsub = dataStore.subscribe(() => {
+        setData(dataStore.getPublicTableHistory(token));
+      });
+      return unsub;
+    }
+  }, [token]);
 
   if (!data.found) {
     return (

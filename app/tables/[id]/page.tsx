@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useUser } from '@/components/user-context';
 import { dataStore } from '@/lib/data/store';
 import { StatusBadge } from '@/components/status-badge';
@@ -23,8 +24,9 @@ import {
 import { format } from 'date-fns';
 import QRCode from 'qrcode';
 
-export default function TableDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function TableDetailsPage() {
+  const params = useParams();
+  const id = (params?.id as string) || '';
   const { currentUser } = useUser();
 
   const [tableData, setTableData] = useState<ReturnType<typeof dataStore.getTableById>>(null);
@@ -42,7 +44,8 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
   const [isSubmittingDispatch, setIsSubmittingDispatch] = useState<boolean>(false);
 
   const loadData = () => {
-    const data = dataStore.getTableById(resolvedParams.id);
+    if (!id) return;
+    const data = dataStore.getTableById(id);
     setTableData(data);
 
     if (data?.qrToken) {
@@ -61,7 +64,7 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
       loadData();
     });
     return unsub;
-  }, [resolvedParams.id]);
+  }, [id]);
 
   if (!tableData) {
     return (
