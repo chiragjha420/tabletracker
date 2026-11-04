@@ -47,17 +47,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(profile as UserProfile);
             dataStore.setSessionUser(profile as UserProfile);
           } else {
-            // Fallback profile if record is populating
+            // Check if there are any active ADMIN profiles in database
+            const { data: adminProfiles } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('role', 'ADMIN')
+              .limit(1);
+
+            const isInitialAdmin = !adminProfiles || adminProfiles.length === 0;
+
             const tempProfile: UserProfile = {
               id: user.id,
               email: user.email || '',
               full_name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'User',
-              role: (user.user_metadata?.role as any) || 'SUPERVISOR',
-              is_active: false,
+              role: isInitialAdmin ? 'ADMIN' : ((user.user_metadata?.role as any) || 'SUPERVISOR'),
+              is_active: isInitialAdmin,
               created_at: user.created_at,
               updated_at: user.created_at,
             };
             setCurrentUser(tempProfile);
+            dataStore.setSessionUser(tempProfile);
           }
         } else {
           // Not authenticated in Supabase
