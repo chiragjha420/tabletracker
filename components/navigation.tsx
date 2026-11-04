@@ -20,6 +20,19 @@ export function Navigation() {
   const { currentUser, unreadCount, signOut } = useUser();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // Hide navigation on auth routes (login, signup), public certificates, or pending approval
+  const isAuthOrPublic = 
+    pathname === '/login' || 
+    pathname === '/signup' || 
+    pathname.startsWith('/qr/');
+
+  const isPendingApproval = 
+    currentUser && !currentUser.is_active && currentUser.role !== 'ADMIN';
+
+  if (isAuthOrPublic || isPendingApproval || !currentUser) {
+    return null;
+  }
+
   const canCreate = currentUser.role === 'ADMIN' || currentUser.role === 'SALES';
   const isAdmin = currentUser.role === 'ADMIN';
 
