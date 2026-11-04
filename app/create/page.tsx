@@ -36,10 +36,7 @@ export default function CreateTablePage() {
   const [referencePhoto, setReferencePhoto] = useState<string>('');
 
   const [checklist, setChecklist] = useState<ChecklistDraftItem[]>([
-    { id: '1', task_name: 'Prepare and calibrate table frame', remark: 'Verify squareness and joint strength.' },
-    { id: '2', task_name: 'Prepare and level precision slate', remark: 'Check with spirit level; ensure tight seam bonding.' },
-    { id: '3', task_name: 'Assemble cushions and rail profile', remark: 'Confirm specified rubber hardness and profile.' },
-    { id: '4', task_name: 'Strap and stretch tournament cloth', remark: 'Zero slack or visible surface blemishes.' },
+    { id: '1', task_name: '', remark: '' },
   ]);
 
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +52,7 @@ export default function CreateTablePage() {
 
   const removeRow = (id: string) => {
     if (checklist.length <= 1) {
-      setError('At least one build task is required.');
+      setChecklist([{ id: Date.now().toString(), task_name: '', remark: '' }]);
       return;
     }
     setChecklist(checklist.filter((item) => item.id !== id));
@@ -227,7 +224,7 @@ export default function CreateTablePage() {
                     type="text"
                     value={item.task_name}
                     onChange={(e) => updateRow(item.id, 'task_name', e.target.value)}
-                    placeholder="Task name"
+                    placeholder="Enter task name..."
                     required
                     className="flex-1 text-xs px-3 py-2 rounded-lg bg-surface text-foreground border border-border focus:outline-none focus:border-neutral-500"
                   />
@@ -266,7 +263,7 @@ export default function CreateTablePage() {
                   type="text"
                   value={item.remark}
                   onChange={(e) => updateRow(item.id, 'remark', e.target.value)}
-                  placeholder="Remark / instruction (optional)"
+                  placeholder="Add remark or specific instructions (optional)..."
                   className="w-full text-xs px-3 py-1.5 rounded-lg bg-surface text-muted-foreground placeholder:text-muted/60 border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
