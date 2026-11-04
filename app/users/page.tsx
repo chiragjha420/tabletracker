@@ -24,24 +24,7 @@ export default function AdminUsersPage() {
 
   const factories = dataStore.getFactories();
 
-  const loadUsers = async () => {
-    const supabase = createClient();
-    if (supabase && isSupabaseConfigured()) {
-      try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (profiles && profiles.length > 0) {
-          profiles.forEach((p: any) => {
-            dataStore.setSessionUser(p as UserProfile);
-          });
-        }
-      } catch (e) {
-        console.error('Error fetching Supabase profiles:', e);
-      }
-    }
-
+  const loadUsers = () => {
     let list = dataStore.getUsers();
     if (roleFilter !== 'All') {
       list = list.filter(u => u.role === roleFilter);
@@ -52,6 +35,26 @@ export default function AdminUsersPage() {
       list = list.filter(u => !u.is_active);
     }
     setUsers(list);
+
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data: profiles, error }) => {
+          if (!error && profiles && profiles.length > 0) {
+            profiles.forEach((p: any) => {
+              dataStore.setSessionUser(p as UserProfile);
+            });
+            let updated = dataStore.getUsers();
+            if (roleFilter !== 'All') updated = updated.filter(u => u.role === roleFilter);
+            if (statusFilter === 'Active') updated = updated.filter(u => u.is_active);
+            else if (statusFilter === 'Pending') updated = updated.filter(u => !u.is_active);
+            setUsers(updated);
+          }
+        });
+    }
   };
 
   useEffect(() => {
@@ -89,49 +92,47 @@ export default function AdminUsersPage() {
     );
   }
 
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+  const handleRoleChange = (userId: string, newRole: UserRole) => {
     setFeedbackMessage(null);
-    const supabase = createClient();
-    if (supabase && isSupabaseConfigured()) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-      if (error) {
-        setFeedbackMessage({ type: 'error', text: error.message });
-        return;
-      }
-    }
-
     const res = dataStore.updateUserRole(userId, newRole, currentUser.id);
     if (!res.success) {
       setFeedbackMessage({ type: 'error', text: res.message });
-    } else {
-      setFeedbackMessage({ type: 'success', text: `Role updated to ${newRole}.` });
-      loadUsers();
+      return;
+    }
+    setFeedbackMessage({ type: 'success', text: `Role updated to ${newRole}.` });
+    loadUsers();
+
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      supabase
+        .from('profiles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.error('Supabase role update error:', error);
+        });
     }
   };
 
-  const handleApprovalToggle = async (userId: string, currentActive: boolean) => {
+  const handleApprovalToggle = (userId: string, currentActive: boolean) => {
     setFeedbackMessage(null);
-    const supabase = createClient();
-    if (supabase && isSupabaseConfigured()) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !currentActive, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-      if (error) {
-        setFeedbackMessage({ type: 'error', text: error.message });
-        return;
-      }
-    }
-
     const res = dataStore.toggleUserApproval(userId, !currentActive, currentUser.id);
     if (!res.success) {
       setFeedbackMessage({ type: 'error', text: res.message });
-    } else {
-      setFeedbackMessage({ type: 'success', text: !currentActive ? 'Account approved.' : 'Account suspended.' });
-      loadUsers();
+      return;
+    }
+    setFeedbackMessage({ type: 'success', text: !currentActive ? 'Account approved.' : 'Account suspended.' });
+    loadUsers();
+
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      supabase
+        .from('profiles')
+        .update({ is_active: !currentActive, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.error('Supabase approval update error:', error);
+        });
     }
   };
 
@@ -141,27 +142,28 @@ export default function AdminUsersPage() {
     setSelectedFactories(userFacs);
   };
 
-  const handleSaveFactoryAccess = async () => {
+  const handleSaveFactoryAccess = () => {
     if (!selectedUserForFactory) return;
-    const supabase = createClient();
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('factory_access').delete().eq('user_id', selectedUserForFactory.id);
-      if (selectedFactories.length > 0) {
-        const rows = selectedFactories.map(fId => ({
-          user_id: selectedUserForFactory.id,
-          factory_id: fId,
-        }));
-        await supabase.from('factory_access').insert(rows);
-      }
-    }
+    const targetUserId = selectedUserForFactory.id;
+    const facIds = [...selectedFactories];
 
-    const res = dataStore.setUserFactoryAccess(selectedUserForFactory.id, selectedFactories, currentUser.id);
+    const res = dataStore.setUserFactoryAccess(targetUserId, facIds, currentUser.id);
     if (!res.success) {
       setFeedbackMessage({ type: 'error', text: res.message });
-    } else {
-      setFeedbackMessage({ type: 'success', text: res.message });
-      setSelectedUserForFactory(null);
-      loadUsers();
+      return;
+    }
+    setFeedbackMessage({ type: 'success', text: res.message });
+    setSelectedUserForFactory(null);
+    loadUsers();
+
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      supabase.from('factory_access').delete().eq('user_id', targetUserId).then(() => {
+        if (facIds.length > 0) {
+          const rows = facIds.map(fId => ({ user_id: targetUserId, factory_id: fId }));
+          supabase.from('factory_access').insert(rows).then();
+        }
+      });
     }
   };
 

@@ -1,5 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr';
 
+let cachedBrowserClient: ReturnType<typeof createBrowserClient> | null = null;
+
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -14,7 +16,11 @@ export function createClient() {
     return null;
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  if (!cachedBrowserClient) {
+    cachedBrowserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  return cachedBrowserClient;
 }
 
 export function isSupabaseConfigured(): boolean {

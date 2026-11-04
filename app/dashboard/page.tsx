@@ -147,11 +147,22 @@ export default function DashboardPage() {
       {/* Tables List with Expandable Checklists */}
       <div className="space-y-3">
         {tables.length === 0 ? (
-          <div className="p-10 text-center rounded-2xl bg-surface border border-border">
-            <p className="text-sm font-medium text-foreground">No tables found</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              No factory tables match the current filter.
+          <div className="p-12 text-center rounded-2xl bg-surface border border-border space-y-2">
+            <p className="text-sm font-semibold text-foreground">No Production Tables Yet</p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              All demo fallback data has been cleared. Create your first table order to begin tracking production.
             </p>
+            {canCreateTable && (
+              <div className="pt-2">
+                <Link
+                  href="/create"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Table Order</span>
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           tables.map((table, index) => (

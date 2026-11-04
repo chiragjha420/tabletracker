@@ -12,6 +12,59 @@ function assert(condition: boolean, message: string) {
 async function runTestSuite() {
   console.log('--- STARTING JBB TABLETRACKER TEST SUITE ---');
 
+  // Register dedicated test users for automated test execution
+  dataStore.setSessionUser({
+    id: 'user-sales-1',
+    full_name: 'Test Sales',
+    email: 'test.sales@test.com',
+    role: 'SALES',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  dataStore.setSessionUser({
+    id: 'user-sup-1',
+    full_name: 'Test Supervisor 1',
+    email: 'test.sup1@test.com',
+    role: 'SUPERVISOR',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  dataStore.setSessionUser({
+    id: 'user-sup-2',
+    full_name: 'Test Supervisor 2',
+    email: 'test.sup2@test.com',
+    role: 'SUPERVISOR',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  dataStore.setSessionUser({
+    id: 'user-admin-1',
+    full_name: 'Test Admin',
+    email: 'test.admin@test.com',
+    role: 'ADMIN',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  dataStore.setSessionUser({
+    id: 'user-sup-3',
+    full_name: 'Test Supervisor 3',
+    email: 'test.sup3@test.com',
+    role: 'SUPERVISOR',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  // Assign factory access for test supervisors
+  dataStore.setUserFactoryAccess('user-sup-1', ['a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002'], 'b241a576-8872-45f8-a2c7-44a74a2aa6d3');
+  dataStore.setUserFactoryAccess('user-sup-2', ['a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002'], 'b241a576-8872-45f8-a2c7-44a74a2aa6d3');
+  dataStore.setUserFactoryAccess('user-sup-3', ['a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002'], 'b241a576-8872-45f8-a2c7-44a74a2aa6d3');
+
   // ==========================================
   // SCENARIO A: Table creation by Salesperson
   // ==========================================
@@ -21,7 +74,7 @@ async function runTestSuite() {
     table_type: 'Snooker',
     reference_photo_path: 'https://example.com/test-snooker.jpg',
     salesperson_id: 'user-sales-1',
-    factory_id: 'fac-1',
+    factory_id: 'a0000000-0000-0000-0000-000000000001',
     checklist: [
       { task_name: 'Assemble solid legs', remark: 'Use M12 high tensile bolts' },
       { task_name: 'Slate leveling and honing', remark: '0.1mm tolerance' },

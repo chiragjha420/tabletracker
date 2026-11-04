@@ -43,7 +43,7 @@ class ProductionDataStore {
   private notifications: NotificationItem[] = [...INITIAL_NOTIFICATIONS];
   private qrAccess: QrAccessRecord[] = [...INITIAL_QR_ACCESS];
 
-  private currentUserId: string = 'user-sup-1'; // Default: Vikram Singh (Supervisor)
+  private currentUserId: string = 'b241a576-8872-45f8-a2c7-44a74a2aa6d3'; // Default: admin@jbb.com
   private listeners: Set<() => void> = new Set();
   private isHydrated: boolean = false;
 
@@ -54,7 +54,13 @@ class ProductionDataStore {
   private hydrateFromStorage() {
     if (typeof window !== 'undefined' && !this.isHydrated) {
       try {
-        const saved = localStorage.getItem('jbb_tabletracker_data_v1');
+        // Clear any old mock cache from previous sessions
+        if (localStorage.getItem('jbb_tabletracker_data_v1')) {
+          localStorage.removeItem('jbb_tabletracker_data_v1');
+          localStorage.removeItem('jbb_current_user_id');
+        }
+
+        const saved = localStorage.getItem('jbb_tabletracker_data_v2');
         if (saved) {
           const parsed = JSON.parse(saved);
           this.users = parsed.users || this.users;
@@ -69,7 +75,7 @@ class ProductionDataStore {
           this.notifications = parsed.notifications || this.notifications;
           this.qrAccess = parsed.qrAccess || this.qrAccess;
         }
-        const savedUser = localStorage.getItem('jbb_current_user_id');
+        const savedUser = localStorage.getItem('jbb_current_user_id_v2');
         if (savedUser && this.users.some(u => u.id === savedUser)) {
           this.currentUserId = savedUser;
         }
@@ -96,8 +102,8 @@ class ProductionDataStore {
           notifications: this.notifications,
           qrAccess: this.qrAccess,
         };
-        localStorage.setItem('jbb_tabletracker_data_v1', JSON.stringify(payload));
-        localStorage.setItem('jbb_current_user_id', this.currentUserId);
+        localStorage.setItem('jbb_tabletracker_data_v2', JSON.stringify(payload));
+        localStorage.setItem('jbb_current_user_id_v2', this.currentUserId);
       } catch (e) {
         console.error('Failed to save to localStorage', e);
       }
