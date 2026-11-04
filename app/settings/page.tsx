@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@/components/user-context';
 import { useTheme } from '@/components/theme-provider';
 import { dataStore } from '@/lib/data/store';
@@ -11,10 +11,24 @@ import Link from 'next/link';
 export default function SettingsPage() {
   const { currentUser, signOut } = useUser();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const factories = dataStore.getFactories();
   const hasSupabase = isSupabaseConfigured();
   const isAdmin = currentUser.role === 'ADMIN';
+
+  if (!mounted) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5 animate-pulse">
+        <div className="h-8 w-32 rounded-xl bg-surface-raised" />
+        <div className="h-44 rounded-2xl bg-surface border border-border" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">

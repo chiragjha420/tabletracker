@@ -16,6 +16,11 @@ export default function AdminUsersPage() {
   const [selectedUserForFactory, setSelectedUserForFactory] = useState<UserProfile | null>(null);
   const [selectedFactories, setSelectedFactories] = useState<string[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const factories = dataStore.getFactories();
 
@@ -56,6 +61,15 @@ export default function AdminUsersPage() {
     });
     return unsub;
   }, [roleFilter, statusFilter]);
+
+  if (!mounted) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-5 animate-pulse">
+        <div className="h-8 w-64 rounded-xl bg-surface-raised" />
+        <div className="h-40 rounded-2xl bg-surface border border-border" />
+      </div>
+    );
+  }
 
   if (currentUser.role !== 'ADMIN') {
     return (

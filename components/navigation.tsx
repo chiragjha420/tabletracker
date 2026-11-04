@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -19,8 +19,13 @@ export function Navigation() {
   const pathname = usePathname();
   const { currentUser, unreadCount, signOut } = useUser();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Hide navigation on auth routes (login, signup), public certificates, or pending approval
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Hide navigation during SSR or on auth routes (login, signup), public certificates, or pending approval
   const isAuthOrPublic = 
     pathname === '/login' || 
     pathname === '/signup' || 
@@ -29,7 +34,7 @@ export function Navigation() {
   const isPendingApproval = 
     currentUser && !currentUser.is_active && currentUser.role !== 'ADMIN';
 
-  if (isAuthOrPublic || isPendingApproval || !currentUser) {
+  if (!mounted || isAuthOrPublic || isPendingApproval || !currentUser) {
     return null;
   }
 
@@ -55,7 +60,7 @@ export function Navigation() {
                 JBB TableTracker
               </span>
             </Link>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-surface-raised text-muted-foreground border border-border">
+            <span suppressHydrationWarning className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-surface-raised text-muted-foreground border border-border">
               {currentUser.role}
             </span>
           </div>
@@ -82,7 +87,7 @@ export function Navigation() {
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full bg-surface-raised hover:bg-surface-overlay text-foreground transition-colors border border-border"
               >
-                <span className="truncate max-w-[100px] sm:max-w-[140px]">{currentUser.full_name}</span>
+                <span suppressHydrationWarning className="truncate max-w-[100px] sm:max-w-[140px]">{currentUser.full_name}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
 

@@ -14,6 +14,11 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [, setRefreshKey] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const loadTables = () => {
     let filterStatus = statusFilter;
@@ -56,6 +61,27 @@ export default function DashboardPage() {
   ];
 
   const canCreateTable = currentUser.role === 'ADMIN' || currentUser.role === 'SALES';
+
+  if (!mounted) {
+    return (
+      <div className="space-y-5 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-44 rounded-xl bg-surface-raised" />
+          <div className="h-8 w-28 rounded-xl bg-surface-raised" />
+        </div>
+        <div className="h-10 w-full rounded-xl bg-surface" />
+        <div className="flex space-x-2">
+          <div className="h-8 w-24 rounded-full bg-surface" />
+          <div className="h-8 w-24 rounded-full bg-surface" />
+          <div className="h-8 w-24 rounded-full bg-surface" />
+        </div>
+        <div className="space-y-3">
+          <div className="h-32 rounded-2xl bg-surface border border-border" />
+          <div className="h-32 rounded-2xl bg-surface border border-border" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
