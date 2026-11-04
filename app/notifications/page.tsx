@@ -10,22 +10,17 @@ export default function NotificationsPage() {
   const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } = useUser();
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
-            Notifications
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Operational alerts, assignments, and production updates
-          </p>
-        </div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          Notifications
+        </h1>
 
         {unreadCount > 0 && (
           <button
             type="button"
             onClick={markAllNotificationsRead}
-            className="text-xs font-medium text-foreground hover:underline flex items-center space-x-1"
+            className="text-xs font-semibold text-foreground hover:underline flex items-center space-x-1"
           >
             <Check className="w-3.5 h-3.5" />
             <span>Mark all read</span>
@@ -35,11 +30,11 @@ export default function NotificationsPage() {
 
       <div className="space-y-2.5">
         {notifications.length === 0 ? (
-          <div className="p-8 text-center rounded-xl border border-dashed border-border bg-surface">
-            <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-foreground">No notifications</p>
+          <div className="p-10 text-center rounded-2xl bg-surface border border-border">
+            <Bell className="w-7 h-7 text-muted mx-auto mb-2" />
+            <p className="text-sm font-semibold text-foreground">No alerts</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              You are completely caught up on all factory alerts.
+              You are up to date on all factory events.
             </p>
           </div>
         ) : (
@@ -48,20 +43,20 @@ export default function NotificationsPage() {
             return (
               <div
                 key={notif.id}
-                className={`p-4 rounded-xl border transition-colors ${
+                className={`p-4 rounded-2xl border transition-colors ${
                   isUnread
-                    ? 'border-foreground/30 bg-surface shadow-xs'
-                    : 'border-border bg-surface/60 text-muted-foreground'
+                    ? 'border-blue-500/30 bg-blue-500/[0.04]'
+                    : 'border-border bg-surface text-muted-foreground'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center space-x-2">
-                      <span className={`text-xs font-semibold ${isUnread ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs font-bold ${isUnread ? 'text-foreground' : 'text-muted-foreground'}`}>
                         {notif.title}
                       </span>
                       {isUnread && (
-                        <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-foreground text-background">
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.2 rounded-full bg-foreground text-background">
                           New
                         </span>
                       )}
@@ -71,7 +66,7 @@ export default function NotificationsPage() {
                       {notif.message}
                     </p>
 
-                    <div className="text-[11px] text-muted-foreground pt-1">
+                    <div className="text-[11px] text-muted pt-1">
                       {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                     </div>
                   </div>
@@ -80,7 +75,7 @@ export default function NotificationsPage() {
                     <Link
                       href={`/tables/${notif.related_table_id}`}
                       onClick={() => markNotificationRead(notif.id)}
-                      className="inline-flex items-center space-x-1 text-xs font-medium text-foreground hover:underline"
+                      className="inline-flex items-center space-x-1 text-xs font-semibold text-foreground hover:underline"
                     >
                       <span>View</span>
                       <ArrowRight className="w-3.5 h-3.5" />

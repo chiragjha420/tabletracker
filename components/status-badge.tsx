@@ -7,52 +7,50 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
-  let bgClass = 'bg-surface-raised text-foreground border-border';
+  let badgeStyle = 'bg-neutral-500/10 text-neutral-400';
 
   switch (status) {
     // Task statuses
     case 'NOT_STARTED':
-      bgClass = 'bg-status-neutral-bg text-status-neutral-text border-status-neutral-border';
+      badgeStyle = 'bg-neutral-500/15 text-neutral-400 dark:text-neutral-300';
       break;
     case 'IN_PROGRESS':
-      bgClass = 'bg-status-blue-bg text-status-blue-text border-status-blue-border font-medium';
+      badgeStyle = 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium';
       break;
     case 'COMPLETED':
-      bgClass = 'bg-status-green-bg text-status-green-text border-status-green-border font-medium';
+      badgeStyle = 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium';
       break;
     case 'BLOCKED':
-      bgClass = 'bg-status-red-bg text-status-red-text border-status-red-border font-medium';
+      badgeStyle = 'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-medium';
       break;
 
     // Table statuses
     case 'Submitted':
-      bgClass = 'bg-surface-raised text-muted-foreground border-border';
+      badgeStyle = 'bg-neutral-500/15 text-neutral-500 dark:text-neutral-400';
       break;
     case 'In Progress':
-      bgClass = 'bg-status-blue-bg text-status-blue-text border-status-blue-border font-medium';
+      badgeStyle = 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium';
       break;
     case 'Needs Attention':
-      bgClass = 'bg-status-red-bg text-status-red-text border-status-red-border font-medium';
+      badgeStyle = 'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-medium';
       break;
     case 'Ready for Dispatch':
-      bgClass = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-medium';
+      badgeStyle = 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium';
       break;
     case 'Completed / Dispatched':
-      bgClass = 'bg-status-green-bg text-status-green-text border-status-green-border font-medium';
+      badgeStyle = 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium';
       break;
     case 'Archived':
-      bgClass = 'bg-surface-raised text-muted-foreground border-border';
+      badgeStyle = 'bg-neutral-500/15 text-neutral-500';
       break;
   }
 
-  // Format label text
-  const label = status.replace('_', ' ');
-
-  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
+  const label = status.replace(/_/g, ' ');
+  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs';
 
   return (
     <span
-      className={`inline-flex items-center rounded-md border tracking-tight ${sizeClasses} ${bgClass}`}
+      className={`inline-flex items-center rounded-full tracking-tight shrink-0 select-none ${sizeClasses} ${badgeStyle}`}
     >
       {label}
     </span>

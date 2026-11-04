@@ -12,8 +12,8 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
   if (!data.found) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full p-6 rounded-2xl border border-status-red-border bg-status-red-bg text-center space-y-3">
-          <AlertCircle className="w-10 h-10 text-status-red-text mx-auto" />
+        <div className="max-w-md w-full p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-3">
+          <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
           <h1 className="text-lg font-bold text-foreground">
             Invalid or Revoked Certificate
           </h1>
@@ -27,14 +27,14 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 py-4">
-      {/* Official Certificate Header */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-border bg-surface text-center space-y-3 shadow-sm">
-        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-status-green-bg border border-status-green-border text-status-green-text text-xs font-semibold">
-          <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+      {/* Verified Certificate Header */}
+      <div className="p-6 rounded-3xl bg-surface border border-border text-center space-y-3 shadow-xs">
+        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
+          <ShieldCheck className="w-4 h-4" />
           <span>Verified Factory Production Certificate</span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           {data.table_name}
         </h1>
 
@@ -43,11 +43,11 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
           <span>•</span>
           <span>{data.table_type}</span>
           <span>•</span>
-          <span className="text-status-green-text font-medium">Completed & Dispatched</span>
+          <span className="text-emerald-400 font-semibold">Dispatched</span>
         </div>
 
         {data.dispatched_at && (
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted">
             Dispatched on {format(new Date(data.dispatched_at), 'dd MMMM yyyy, HH:mm')}
           </div>
         )}
@@ -56,11 +56,11 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
       {/* Reference & Final Packing Gallery */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {data.reference_photo_path && (
-          <div className="rounded-xl border border-border bg-surface overflow-hidden space-y-2 p-3">
+          <div className="rounded-2xl bg-surface p-3.5 space-y-2 border border-border">
             <span className="text-xs font-semibold text-foreground block">
               Reference Design Photo
             </span>
-            <div className="aspect-video rounded-lg overflow-hidden bg-surface-raised border border-border">
+            <div className="aspect-video rounded-xl overflow-hidden bg-black border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={data.reference_photo_path}
@@ -72,11 +72,11 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
         )}
 
         {data.packed_table_photo_path && (
-          <div className="rounded-xl border border-border bg-surface overflow-hidden space-y-2 p-3">
+          <div className="rounded-2xl bg-surface p-3.5 space-y-2 border border-border">
             <span className="text-xs font-semibold text-foreground block">
               Final Loaded Truck Photo
             </span>
-            <div className="aspect-video rounded-lg overflow-hidden bg-surface-raised border border-border">
+            <div className="aspect-video rounded-xl overflow-hidden bg-black border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={data.packed_table_photo_path}
@@ -89,7 +89,7 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
       </div>
 
       {/* Dispatch Logistics Summary (Strictly excludes driver phone number) */}
-      <div className="p-4 rounded-xl border border-border bg-surface flex items-center justify-around text-center text-xs">
+      <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-around text-center text-xs">
         <div>
           <span className="text-muted-foreground block">Total Nags Prepared</span>
           <span className="text-base font-bold text-foreground mt-0.5 block">
@@ -107,19 +107,19 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
 
       {/* Chronological Production Tasks & Evidence */}
       <div className="space-y-3">
-        <h2 className="text-base font-semibold tracking-tight text-foreground">
+        <h2 className="text-base font-bold tracking-tight text-foreground">
           Step-by-Step Task Completion Evidence
         </h2>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {data.completed_tasks?.map((task) => (
             <div
               key={task.sequence_number}
-              className="p-4 rounded-xl border border-status-green-border bg-status-green-bg/50 space-y-3"
+              className="p-4 rounded-2xl bg-surface border border-border space-y-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start space-x-2.5">
-                  <span className="w-5 h-5 rounded-full bg-status-green-text text-background flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
                     {task.sequence_number}
                   </span>
                   <div>
@@ -139,19 +139,19 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
                   </div>
                 </div>
 
-                <span className="text-[11px] font-semibold text-status-green-text flex items-center space-x-1 shrink-0">
+                <span className="text-[11px] font-semibold text-emerald-400 flex items-center space-x-1 shrink-0">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Verified</span>
                 </span>
               </div>
 
-              {/* Task Evidence Photos */}
+              {/* Photos */}
               {task.photos && task.photos.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {task.photos.map((photo, i) => (
                     <div
                       key={i}
-                      className="w-28 h-20 sm:w-36 sm:h-24 rounded-lg overflow-hidden border border-border bg-surface-raised shrink-0"
+                      className="w-28 h-20 sm:w-36 sm:h-24 rounded-xl overflow-hidden bg-black shrink-0 border border-border"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -168,8 +168,7 @@ export default function PublicQrHistoryPage({ params }: { params: Promise<{ toke
         </div>
       </div>
 
-      {/* Footer Branding */}
-      <div className="pt-6 border-t border-border text-center text-xs text-muted-foreground">
+      <div className="pt-6 border-t border-divider text-center text-xs text-muted">
         JBB TableTracker Production Verification System
       </div>
     </div>

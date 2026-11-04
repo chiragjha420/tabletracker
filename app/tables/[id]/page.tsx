@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/components/user-context';
 import { dataStore } from '@/lib/data/store';
 import { StatusBadge } from '@/components/status-badge';
@@ -11,29 +10,29 @@ import { PhotoUploader } from '@/components/photo-uploader';
 import { 
   ArrowLeft, 
   User, 
-  Factory, 
-  Calendar, 
   CheckCircle2, 
   AlertTriangle, 
-  QrCode, 
   Truck, 
   ShieldCheck, 
   ExternalLink,
   RefreshCw,
-  Ban
+  Ban,
+  Maximize2,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import QRCode from 'qrcode';
 
 export default function TableDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const router = useRouter();
   const { currentUser } = useUser();
 
   const [tableData, setTableData] = useState<ReturnType<typeof dataStore.getTableById>>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [taskFilter, setTaskFilter] = useState<'all' | 'mine'>('all');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Dispatch Form State
   const [nagsCount, setNagsCount] = useState<number>(1);
@@ -66,8 +65,8 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
 
   if (!tableData) {
     return (
-      <div className="p-12 text-center text-sm text-muted-foreground">
-        Table record not found. <Link href="/dashboard" className="text-foreground underline ml-1">Return to dashboard</Link>
+      <div className="p-12 text-center text-xs text-muted-foreground">
+        Table record not found. <Link href="/dashboard" className="text-foreground underline ml-1">Return to tables</Link>
       </div>
     );
   }
@@ -78,6 +77,12 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
   const completedBuildTasks = buildTasks.filter(t => t.status === 'COMPLETED').length;
   const totalBuildTasks = buildTasks.length;
   const percentComplete = totalBuildTasks > 0 ? Math.round((completedBuildTasks / totalBuildTasks) * 100) : 0;
+
+  const myTasksCount = tasks.filter(t => t.assigned_supervisor_id === currentUser.id).length;
+
+  const filteredTasks = taskFilter === 'mine'
+    ? tasks.filter(t => t.assigned_supervisor_id === currentUser.id)
+    : tasks;
 
   const isSupervisor = currentUser.role === 'SUPERVISOR';
   const isAdmin = currentUser.role === 'ADMIN';
@@ -114,12 +119,11 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
     if (!res.success) {
       setActionError(res.message);
     } else {
-      setActionSuccess('Dispatch successfully recorded! Table completed and QR certificate generated.');
+      setActionSuccess('Dispatch successfully recorded. Unique QR certificate generated.');
       loadData();
     }
   };
 
-  // Admin QR Revocation / Regeneration
   const handleRevokeQr = () => {
     setActionError(null);
     const ok = dataStore.revokeQr(table.id, currentUser.id);
@@ -144,22 +148,22 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-6">
-      {/* Top Navigation */}
+      {/* Top Header */}
       <div className="flex items-center space-x-3">
         <Link
           href="/dashboard"
-          className="p-2 rounded-lg border border-border bg-surface hover:bg-surface-raised transition-colors text-foreground"
-          aria-label="Back to dashboard"
+          className="p-2 rounded-xl bg-surface hover:bg-surface-raised text-foreground transition-colors border border-border"
+          aria-label="Back to tables"
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
           <div className="flex items-center space-x-2">
-            <span className="font-mono text-xs font-semibold text-muted-foreground">
+            <span className="font-mono text-xs text-muted font-medium">
               {table.table_code}
             </span>
-            <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs font-medium text-foreground px-2 py-0.5 rounded bg-surface border border-border">
+            <span className="text-muted">•</span>
+            <span className="text-[11px] font-medium text-foreground px-2 py-0.5 rounded-full bg-surface-raised">
               {table.table_type}
             </span>
           </div>
@@ -170,49 +174,54 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
       </div>
 
       {actionError && (
-        <div className="p-3.5 rounded-xl bg-status-red-bg border border-status-red-border text-status-red-text text-xs flex items-center space-x-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 text-rose-400 text-xs flex items-center space-x-2 border border-rose-500/20">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{actionError}</span>
         </div>
       )}
 
       {actionSuccess && (
-        <div className="p-3.5 rounded-xl bg-status-green-bg border border-status-green-border text-status-green-text text-xs flex items-center space-x-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600 dark:text-green-400" />
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-400 text-xs flex items-center space-x-2 border border-emerald-500/20">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{actionSuccess}</span>
         </div>
       )}
 
       {/* Main Table Info Card */}
-      <div className="p-4 sm:p-6 rounded-xl border border-border bg-surface space-y-4">
+      <div className="p-5 sm:p-6 rounded-2xl bg-surface border border-border space-y-4">
         <div className="flex flex-col md:flex-row gap-5">
-          {/* Reference Photo Thumbnail / Viewer */}
-          <div className="relative w-full md:w-56 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden bg-surface-raised border border-border shrink-0">
+          {/* Reference Photo Box with Lightbox */}
+          <div 
+            onClick={() => setLightboxOpen(true)}
+            className="relative w-full md:w-56 aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden bg-black shrink-0 border border-border cursor-pointer group"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={table.reference_photo_path}
               alt={table.table_name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            <span className="absolute bottom-2 left-2 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-background/80 text-foreground backdrop-blur-md border border-border">
-              Reference
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+              <Maximize2 className="w-5 h-5" />
+            </div>
+            <span className="absolute bottom-2 left-2 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-xs">
+              Finished Look
             </span>
           </div>
 
-          {/* Details & Metadata */}
+          {/* Details */}
           <div className="flex-1 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <StatusBadge status={table.status} size="md" />
 
-              {/* Take Responsibility Button (PRD 3.3) */}
               {!table.lead_supervisor_id && (isSupervisor || isAdmin) && table.status === 'Submitted' && (
                 <button
                   type="button"
                   onClick={handleClaimTable}
-                  className="min-h-[44px] px-4 py-2 rounded-lg bg-foreground text-background text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center space-x-1.5"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-foreground text-background text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center space-x-1.5"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Take Responsibility (Lead Supervisor)</span>
+                  <span>Take Responsibility (Lead)</span>
                 </button>
               )}
             </div>
@@ -223,38 +232,28 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                 <span>{table.salesperson?.full_name}</span>
               </div>
               <div>
-                <span className="block font-medium text-foreground">Factory</span>
-                <span>{table.factory?.factory_name}</span>
-              </div>
-              <div>
                 <span className="block font-medium text-foreground">Lead Supervisor</span>
-                <span className={table.lead_supervisor ? 'text-foreground font-medium' : 'italic'}>
+                <span className={table.lead_supervisor ? 'text-foreground font-medium' : 'italic text-muted'}>
                   {table.lead_supervisor ? table.lead_supervisor.full_name : 'Unclaimed'}
                 </span>
               </div>
               <div>
-                <span className="block font-medium text-foreground">Order Date</span>
+                <span className="block font-medium text-foreground">Created</span>
                 <span>{format(new Date(table.created_at), 'dd MMM yyyy')}</span>
               </div>
-              {table.dispatched_at && (
-                <div>
-                  <span className="block font-medium text-foreground">Dispatched At</span>
-                  <span>{format(new Date(table.dispatched_at), 'dd MMM yyyy, HH:mm')}</span>
-                </div>
-              )}
             </div>
 
-            {/* Overall Progress Bar */}
+            {/* Overall Progress */}
             <div className="space-y-1.5 pt-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-foreground">Production Progress</span>
                 <span className="text-muted-foreground font-medium">
-                  {completedBuildTasks} of {totalBuildTasks} build tasks complete ({percentComplete}%)
+                  {completedBuildTasks} of {totalBuildTasks} tasks complete ({percentComplete}%)
                 </span>
               </div>
-              <div className="w-full bg-surface-raised rounded-full h-2 overflow-hidden border border-border/50">
+              <div className="w-full bg-surface-raised rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-foreground h-2 rounded-full transition-all duration-300"
+                  className="bg-foreground h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${percentComplete}%` }}
                 />
               </div>
@@ -263,32 +262,29 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* QR Code Certificate Section (Displayed when completed) */}
+      {/* QR Certificate Box */}
       {isCompleted && qrToken && qrCodeDataUrl && (
-        <div className="p-4 sm:p-5 rounded-xl border border-status-green-border bg-status-green-bg space-y-4">
+        <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3 text-center sm:text-left">
-              <div className="p-2 bg-surface rounded-xl border border-border shrink-0">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-white rounded-xl shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrCodeDataUrl} alt="Table Production QR Code" className="w-24 h-24" />
+                <img src={qrCodeDataUrl} alt="Table QR Code" className="w-20 h-20" />
               </div>
               <div>
-                <div className="text-xs uppercase font-bold tracking-wider text-status-green-text">
+                <h3 className="text-sm sm:text-base font-bold text-foreground">
                   Production Certificate Ready
-                </div>
-                <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                  Unique Table QR Code
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Scanning opens the public verifiable production history with completion evidence.
+                  Unique QR certificate generated for this completed table.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Link
                     href={`/qr/${qrToken}`}
                     target="_blank"
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-surface border border-border text-xs font-medium text-foreground hover:bg-surface-raised transition-colors"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
                   >
-                    <span>Open Public Certificate</span>
+                    <span>Open Certificate</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
 
@@ -297,8 +293,7 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                       <button
                         type="button"
                         onClick={handleRegenerateQr}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-medium text-foreground hover:bg-surface-raised"
-                        title="Regenerate token"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-overlay border border-border text-xs font-medium text-foreground transition-colors"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>Regenerate</span>
@@ -306,8 +301,7 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                       <button
                         type="button"
                         onClick={handleRevokeQr}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-medium text-status-red-text hover:bg-red-500/10"
-                        title="Revoke public access"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-surface hover:bg-rose-500/10 border border-border text-xs font-medium text-rose-400 transition-colors"
                       >
                         <Ban className="w-3.5 h-3.5" />
                         <span>Revoke</span>
@@ -321,55 +315,75 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* Production Checklist Section */}
+      {/* Production Tasks Checklist */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">
-              Production Checklist
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Step-by-step tasks. Each requires mandatory photo evidence upon completion.
-            </p>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-base font-bold tracking-tight text-foreground">
+            Production Tasks
+          </h2>
+
+          {/* Task Filter (All vs My Tasks) */}
+          <div className="flex items-center space-x-1 rounded-xl bg-surface p-1 border border-border text-xs">
+            <button
+              type="button"
+              onClick={() => setTaskFilter('all')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                taskFilter === 'all'
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All Tasks ({tasks.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTaskFilter('mine')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                taskFilter === 'mine'
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              My Tasks ({myTasksCount})
+            </button>
           </div>
         </div>
 
         <div className="space-y-2.5">
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              leadSupervisorId={table.lead_supervisor_id}
-              factoryId={table.factory_id}
-              isCompletedTable={isCompleted}
-              onUpdate={loadData}
-            />
-          ))}
+          {filteredTasks.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl bg-surface border border-border text-xs text-muted-foreground">
+              No tasks currently assigned to you on this table.
+            </div>
+          ) : (
+            filteredTasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                leadSupervisorId={table.lead_supervisor_id}
+                factoryId={table.factory_id}
+                isCompletedTable={isCompleted}
+                onUpdate={loadData}
+              />
+            ))
+          )}
         </div>
       </div>
 
-      {/* Mandatory Final Dispatch Form (PRD Section 4 & Section 9 Master Build Prompt) */}
-      {/* Appears when table is Ready for Dispatch or when completing the dispatch task */}
+      {/* Dispatch Checkpoint Form */}
       {(isReadyForDispatch || (!isCompleted && dispatchTask?.status === 'NOT_STARTED')) && (isSupervisor || isAdmin) && (
-        <div className="p-4 sm:p-5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-4">
-          <div className="border-b border-divider pb-2">
-            <div className="flex items-center space-x-2">
-              <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-base font-semibold text-foreground">
-                Final Checkpoint: Dispatch & Packing Form
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Production gate: Dispatch cannot proceed until all build tasks are completed with valid photos.
-            </p>
+        <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
+          <div className="flex items-center space-x-2">
+            <Truck className="w-5 h-5 text-foreground" />
+            <h3 className="text-sm font-bold text-foreground">
+              Final Checkpoint: Dispatch & Packing Form
+            </h3>
           </div>
 
-          <form onSubmit={handleCompleteDispatch} className="space-y-4">
+          <form onSubmit={handleCompleteDispatch} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Nags Prepared */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Total Nags Prepared <span className="text-red-500">*</span>
+                  Total Nags Prepared <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -378,14 +392,13 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                   value={nagsCount}
                   onChange={(e) => setNagsCount(parseInt(e.target.value) || 0)}
                   required
-                  className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
 
-              {/* Driver Name */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Driver Name <span className="text-red-500">*</span>
+                  Driver Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -393,64 +406,62 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                   onChange={(e) => setDriverName(e.target.value)}
                   placeholder="e.g. Jaswinder Singh"
                   required
-                  className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
 
-              {/* Driver Phone Number */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Driver Phone Number <span className="text-red-500">*</span>
+                  Driver Phone <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
                   value={driverPhone}
                   onChange={(e) => setDriverPhone(e.target.value)}
-                  placeholder="e.g. +91 98765 43210"
+                  placeholder="+91 98765 43210"
                   required
-                  className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
             </div>
 
-            {/* Packed Table Photo */}
             <PhotoUploader
               label="Packed & Loaded Truck Photo (Mandatory)"
               required
               onPhotoSelected={setPackedPhoto}
             />
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-1">
               <button
                 type="submit"
                 disabled={isSubmittingDispatch || !packedPhoto}
-                className="min-h-[44px] px-6 py-2.5 rounded-lg bg-foreground text-background text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center space-x-1.5"
+                className="min-h-[44px] px-6 py-2.5 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center space-x-1.5"
               >
                 <Truck className="w-4 h-4" />
-                <span>{isSubmittingDispatch ? 'Verifying & Dispatching...' : 'Complete Dispatch & Release Table'}</span>
+                <span>{isSubmittingDispatch ? 'Verifying...' : 'Complete Dispatch & Release Table'}</span>
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Production Activity Audit Trail */}
-      <div className="p-4 sm:p-5 rounded-xl border border-border bg-surface space-y-4">
-        <h2 className="text-sm font-semibold text-foreground tracking-tight border-b border-divider pb-2">
-          Production Activity History
-        </h2>
+      {/* Production Activity History */}
+      <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+        <h3 className="text-sm font-bold text-foreground">
+          Production Activity Trail
+        </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5 text-xs">
           {activity.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No activity recorded yet.</p>
+            <p className="text-muted-foreground italic">No activity recorded yet.</p>
           ) : (
             activity.map((act) => (
-              <div key={act.id} className="flex items-start space-x-3 text-xs">
-                <span className="w-2 h-2 rounded-full bg-foreground shrink-0 mt-1.5" />
+              <div key={act.id} className="flex items-start space-x-3 text-xs py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-foreground shrink-0 mt-2" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground">
-                      {act.event_type.replace('_', ' ')}
+                      {act.event_type.replace(/_/g, ' ')}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       {format(new Date(act.created_at), 'dd MMM, HH:mm')}
@@ -459,7 +470,7 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="text-muted-foreground mt-0.5">
                     by <span className="font-medium text-foreground">{act.actor?.full_name || 'System'}</span>
                     {act.previous_value && act.new_value && (
-                      <span className="ml-1">
+                      <span className="ml-1 text-[11px] text-muted">
                         ({act.previous_value} → {act.new_value})
                       </span>
                     )}
@@ -470,6 +481,42 @@ export default function TableDetailsPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </div>
+
+      {/* Lightbox Modal for Reference Design Inspection */}
+      {lightboxOpen && (
+        <div 
+          onClick={() => setLightboxOpen(false)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-3xl w-full bg-surface-overlay rounded-3xl overflow-hidden border border-border"
+          >
+            <div className="p-4 border-b border-divider flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{table.table_name}</h3>
+                <span className="text-xs text-muted-foreground">{table.table_type} • Finished Reference Design</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(false)}
+                className="p-1.5 rounded-full bg-surface-raised text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-black flex items-center justify-center max-h-[75vh] overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={table.reference_photo_path}
+                alt={table.table_name}
+                className="max-h-[70vh] w-auto object-contain rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

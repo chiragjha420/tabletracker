@@ -29,10 +29,10 @@ export default function CreateTablePage() {
   const { currentUser } = useUser();
 
   const factories = dataStore.getFactories();
+  const defaultFactoryId = factories[0]?.id || 'fac-1';
 
   const [tableName, setTableName] = useState('');
   const [tableType, setTableType] = useState<TableType>('Snooker');
-  const [factoryId, setFactoryId] = useState(factories[0]?.id || '');
   const [referencePhoto, setReferencePhoto] = useState<string>('');
 
   const [checklist, setChecklist] = useState<ChecklistDraftItem[]>([
@@ -55,7 +55,7 @@ export default function CreateTablePage() {
 
   const removeRow = (id: string) => {
     if (checklist.length <= 1) {
-      setError('At least one build task is required in the checklist.');
+      setError('At least one build task is required.');
       return;
     }
     setChecklist(checklist.filter((item) => item.id !== id));
@@ -92,11 +92,6 @@ export default function CreateTablePage() {
       return;
     }
 
-    if (!factoryId) {
-      setError('Please select a target manufacturing factory.');
-      return;
-    }
-
     const invalidTasks = checklist.some((t) => !t.task_name.trim());
     if (invalidTasks) {
       setError('All checklist tasks must have a valid task name.');
@@ -111,55 +106,48 @@ export default function CreateTablePage() {
         table_type: tableType,
         reference_photo_path: referencePhoto,
         salesperson_id: currentUser.id,
-        factory_id: factoryId,
+        factory_id: defaultFactoryId, // Auto-assigned without requiring salesperson selection
         checklist: checklist.map((t) => ({
           task_name: t.task_name.trim(),
           remark: t.remark.trim() || undefined,
         })),
       });
 
-      router.push(`/tables/${newTable.id}`);
+      router.push(`/dashboard`);
     } catch (err: any) {
-      setError(err?.message || 'Failed to create table. Please retry.');
+      setError(err?.message || 'Failed to create table order.');
       setIsSubmitting(false);
     }
   };
 
+  const tableTypes: TableType[] = ['Pool', 'Snooker', 'Mini Snooker', 'American Pool'];
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Top Header */}
+      {/* Header with Back button — strictly NO subtitles */}
       <div className="flex items-center space-x-3">
         <Link
           href="/dashboard"
-          className="p-2 rounded-lg border border-border bg-surface hover:bg-surface-raised transition-colors text-foreground"
-          aria-label="Back to dashboard"
+          className="p-2 rounded-xl bg-surface hover:bg-surface-raised text-foreground transition-colors border border-border"
+          aria-label="Back to tables"
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
-            Create Table Order
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Define table specifications and production checklist for factory execution
-          </p>
-        </div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          Create Table Order
+        </h1>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-status-red-bg border border-status-red-border text-status-red-text text-xs flex items-center space-x-2">
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 text-rose-400 text-xs flex items-center space-x-2 border border-rose-500/20">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Table Information */}
-        <div className="p-4 sm:p-5 rounded-xl border border-border bg-surface space-y-4">
-          <h2 className="text-sm font-semibold text-foreground tracking-tight border-b border-divider pb-2">
-            Table Details
-          </h2>
-
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Main Details Card */}
+        <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
           {/* Reference Photo Uploader */}
           <PhotoUploader
             label="Finished Reference Photo"
@@ -169,8 +157,8 @@ export default function CreateTablePage() {
 
           {/* Table Name */}
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1">
-              Table Name <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-foreground mb-1.5">
+              Table Name <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -178,77 +166,45 @@ export default function CreateTablePage() {
               onChange={(e) => setTableName(e.target.value)}
               placeholder="e.g. Master Tournament Snooker 12ft"
               required
-              className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+              className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2.5 rounded-xl bg-surface-raised text-foreground placeholder:text-muted border border-border focus:outline-none focus:border-neutral-500 transition-colors"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Table Type */}
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">
-                Table Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={tableType}
-                onChange={(e) => setTableType(e.target.value as TableType)}
-                className="w-full min-h-[44px] text-xs sm:text-sm px-3 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-              >
-                <option value="Pool">Pool</option>
-                <option value="Snooker">Snooker</option>
-                <option value="Mini Snooker">Mini Snooker</option>
-                <option value="American Pool">American Pool</option>
-              </select>
-            </div>
-
-            {/* Target Factory */}
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">
-                Manufacturing Factory <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={factoryId}
-                onChange={(e) => setFactoryId(e.target.value)}
-                className="w-full min-h-[44px] text-xs sm:text-sm px-3 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-              >
-                {factories.map((fac) => (
-                  <option key={fac.id} value={fac.id}>
-                    {fac.factory_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Salesperson Auto-populated */}
+          {/* Table Type Pill Selector */}
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1">
-              Salesperson
+            <label className="block text-xs font-medium text-foreground mb-1.5">
+              Table Type <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="text"
-              disabled
-              value={`${currentUser.full_name} (${currentUser.email})`}
-              className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-border bg-surface-raised text-muted-foreground cursor-not-allowed"
-            />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {tableTypes.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTableType(type)}
+                  className={`min-h-[42px] px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    tableType === type
+                      ? 'bg-foreground text-background font-semibold'
+                      : 'bg-surface-raised text-muted-foreground hover:text-foreground border border-border'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Custom Checklist Builder */}
-        <div className="p-4 sm:p-5 rounded-xl border border-border bg-surface space-y-4">
-          <div className="flex items-center justify-between border-b border-divider pb-2">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground tracking-tight">
-                Production Checklist
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Build step-by-step tasks. Supervisors will complete each task with mandatory photo evidence.
-              </p>
-            </div>
+        {/* Production Checklist Builder */}
+        <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+          <div className="flex items-center justify-between pb-1">
+            <span className="text-sm font-bold text-foreground">
+              Production Checklist
+            </span>
 
             <button
               type="button"
               onClick={addRow}
-              className="inline-flex items-center space-x-1 min-h-[40px] px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-raised text-xs font-medium text-foreground transition-colors"
+              className="inline-flex items-center space-x-1 min-h-[36px] px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-surface-overlay text-xs font-semibold text-foreground transition-colors border border-border"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Task</span>
@@ -256,14 +212,14 @@ export default function CreateTablePage() {
           </div>
 
           {/* Checklist Rows */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {checklist.map((item, index) => (
               <div
                 key={item.id}
-                className="p-3 rounded-xl border border-border bg-surface-raised space-y-2"
+                className="p-3 rounded-xl bg-surface-raised border border-border space-y-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="w-5 h-5 rounded-full bg-surface border border-border flex items-center justify-center text-[11px] font-semibold text-muted-foreground shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-surface-overlay flex items-center justify-center text-[11px] font-bold text-muted-foreground shrink-0 border border-border">
                     {index + 1}
                   </span>
 
@@ -271,18 +227,17 @@ export default function CreateTablePage() {
                     type="text"
                     value={item.task_name}
                     onChange={(e) => updateRow(item.id, 'task_name', e.target.value)}
-                    placeholder="Task name (e.g. Assemble steel frame)"
+                    placeholder="Task name"
                     required
-                    className="flex-1 text-xs sm:text-sm px-3 py-1.5 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-surface text-foreground border border-border focus:outline-none focus:border-neutral-500"
                   />
 
-                  {/* Reordering and Delete Buttons */}
                   <div className="flex items-center space-x-1 shrink-0">
                     <button
                       type="button"
                       disabled={index === 0}
                       onClick={() => moveRow(index, 'up')}
-                      className="p-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised disabled:opacity-30 text-foreground"
+                      className="p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-30 text-foreground border border-border"
                       title="Move up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
@@ -291,7 +246,7 @@ export default function CreateTablePage() {
                       type="button"
                       disabled={index === checklist.length - 1}
                       onClick={() => moveRow(index, 'down')}
-                      className="p-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised disabled:opacity-30 text-foreground"
+                      className="p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-30 text-foreground border border-border"
                       title="Move down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
@@ -299,7 +254,7 @@ export default function CreateTablePage() {
                     <button
                       type="button"
                       onClick={() => removeRow(item.id)}
-                      className="p-1.5 rounded-md border border-border bg-surface hover:bg-red-500/10 text-status-red-text transition-colors"
+                      className="p-1.5 rounded-lg bg-surface hover:bg-rose-500/10 text-rose-400 transition-colors border border-border"
                       title="Delete row"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -311,47 +266,42 @@ export default function CreateTablePage() {
                   type="text"
                   value={item.remark}
                   onChange={(e) => updateRow(item.id, 'remark', e.target.value)}
-                  placeholder="Additional instructions / remarks (optional)"
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-border bg-surface text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-foreground"
+                  placeholder="Remark / instruction (optional)"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg bg-surface text-muted-foreground placeholder:text-muted/60 border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
             ))}
 
-            {/* Mandatory Dispatch & Packing Row (Auto-included, cannot be deleted) */}
-            <div className="p-3 rounded-xl border border-dashed border-border bg-surface flex items-center justify-between text-xs text-muted-foreground">
+            {/* Mandatory Dispatch Row */}
+            <div className="p-3 rounded-xl bg-surface-raised flex items-center justify-between text-xs text-muted-foreground border border-border">
               <div className="flex items-center space-x-2">
                 <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <div className="font-semibold text-foreground">
-                    {checklist.length + 1}. Dispatch & Packing (Final Checkpoint)
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    Automatically enforced: requires driver details, Nags count, and loaded truck photo before table completion.
-                  </div>
-                </div>
+                <span className="font-semibold text-foreground">
+                  {checklist.length + 1}. Dispatch & Packing (Final Checkpoint)
+                </span>
               </div>
-              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-surface-raised border border-border">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-surface text-muted border border-border">
                 Mandatory
               </span>
             </div>
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end space-x-3 pt-2">
+        {/* Form Actions */}
+        <div className="flex justify-end space-x-3 pt-1">
           <Link
             href="/dashboard"
-            className="min-h-[44px] px-4 py-2.5 rounded-lg border border-border bg-surface hover:bg-surface-raised text-xs sm:text-sm font-medium text-foreground transition-colors flex items-center justify-center"
+            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-surface hover:bg-surface-raised text-xs sm:text-sm font-medium text-foreground transition-colors flex items-center justify-center border border-border"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="min-h-[44px] px-6 py-2.5 rounded-lg bg-foreground text-background text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center space-x-1.5"
+            className="min-h-[44px] px-6 py-2.5 rounded-xl bg-foreground text-background text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center space-x-1.5"
           >
             <Check className="w-4 h-4" />
-            <span>{isSubmitting ? 'Creating Order...' : 'Submit Table Order'}</span>
+            <span>{isSubmitting ? 'Submitting...' : 'Submit Table Order'}</span>
           </button>
         </div>
       </form>

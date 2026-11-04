@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ProductionTask, UserProfile } from '@/types';
+import { ProductionTask } from '@/types';
 import { StatusBadge } from './status-badge';
 import { PhotoUploader } from './photo-uploader';
 import { useUser } from './user-context';
@@ -40,7 +40,7 @@ export function TaskRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Modal / Inline forms
+  // Forms state
   const [showCompleteForm, setShowCompleteForm] = useState(false);
   const [completionPhoto, setCompletionPhoto] = useState<string>('');
 
@@ -60,14 +60,14 @@ export function TaskRow({
   const [editName, setEditName] = useState(task.task_name);
   const [editRemark, setEditRemark] = useState(task.remark || '');
 
-  // Row tinting based on PRD Section 9.3
-  let rowTintClass = 'bg-status-neutral-bg border-status-neutral-border';
+  // Refined Apple-style semantic tint (NO harsh white borders)
+  let rowStyle = 'bg-surface-raised border-border';
   if (task.status === 'IN_PROGRESS') {
-    rowTintClass = 'bg-status-blue-bg border-status-blue-border';
+    rowStyle = 'bg-blue-500/[0.08] border-blue-500/20';
   } else if (task.status === 'COMPLETED') {
-    rowTintClass = 'bg-status-green-bg border-status-green-border';
+    rowStyle = 'bg-emerald-500/[0.07] border-emerald-500/20';
   } else if (task.status === 'BLOCKED') {
-    rowTintClass = 'bg-status-red-bg border-status-red-border';
+    rowStyle = 'bg-rose-500/[0.08] border-rose-500/20';
   }
 
   const isSupervisor = currentUser.role === 'SUPERVISOR';
@@ -113,8 +113,9 @@ export function TaskRow({
     task.status === 'COMPLETED' && 
     task.task_type !== 'DISPATCH';
 
-  // --- ACTIONS ---
-  const handleStart = () => {
+  // Actions
+  const handleStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setActionError(null);
     const res = dataStore.startTask(task.id, currentUser.id);
     if (!res.success) {
@@ -220,31 +221,31 @@ export function TaskRow({
 
   return (
     <div
-      className={`rounded-xl border transition-all duration-200 overflow-hidden ${rowTintClass}`}
+      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${rowStyle}`}
     >
-      {/* Primary Row Header */}
+      {/* Primary Header Row */}
       <div 
-        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
+        className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start space-x-3">
-          <span className="w-6 h-6 rounded-full bg-surface/80 border border-border flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0 mt-0.5">
+          <span className="w-6 h-6 rounded-full bg-surface-overlay flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0 mt-0.5 border border-border">
             {task.sequence_number}
           </span>
           <div>
             <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-              <h4 className="text-sm font-semibold text-foreground tracking-tight">
+              <span className="text-sm font-semibold text-foreground tracking-tight">
                 {task.task_name}
-              </h4>
+              </span>
               {task.task_type === 'DISPATCH' && (
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-surface border border-border text-foreground">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-surface-overlay text-muted-foreground border border-border">
                   Final Checkpoint
                 </span>
               )}
             </div>
 
             {task.remark && (
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {task.remark}
               </p>
             )}
@@ -252,7 +253,7 @@ export function TaskRow({
             <div className="flex items-center space-x-3 mt-1.5 text-xs text-muted-foreground">
               <span className="flex items-center space-x-1">
                 <User className="w-3.5 h-3.5" />
-                <span className={task.assigned_supervisor ? 'text-foreground font-medium' : 'italic'}>
+                <span className={task.assigned_supervisor ? 'text-foreground font-medium' : 'italic text-muted'}>
                   {task.assigned_supervisor ? task.assigned_supervisor.full_name : 'Unassigned'}
                 </span>
               </span>
@@ -265,7 +266,7 @@ export function TaskRow({
               )}
 
               {task.evidence && task.evidence.length > 0 && (
-                <span className="flex items-center space-x-1 text-foreground font-medium">
+                <span className="flex items-center space-x-1 text-emerald-400 font-medium">
                   <ImageIcon className="w-3.5 h-3.5" />
                   <span>{task.evidence.length} photo</span>
                 </span>
@@ -274,11 +275,23 @@ export function TaskRow({
           </div>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+        <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-divider">
+          {canStart && (
+            <button
+              type="button"
+              onClick={handleStart}
+              className="min-h-[36px] px-3 py-1.5 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity flex items-center space-x-1"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Start</span>
+            </button>
+          )}
+
           <StatusBadge status={task.status} />
+
           <button 
             type="button"
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface/50"
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
             aria-label={isExpanded ? 'Collapse task' : 'Expand task'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -288,8 +301,8 @@ export function TaskRow({
 
       {/* Blocked Alert Banner if open issue exists */}
       {task.status === 'BLOCKED' && task.open_issue && (
-        <div className="px-3.5 py-2.5 bg-red-500/10 border-t border-status-red-border text-xs text-status-red-text flex items-start space-x-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+        <div className="px-4 py-2.5 bg-rose-500/10 border-t border-rose-500/20 text-xs text-rose-400 flex items-start space-x-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1">
             <span className="font-semibold">Blocked: </span>
             <span>{task.open_issue.reason}</span>
@@ -299,17 +312,17 @@ export function TaskRow({
 
       {/* Expanded Details & Actions Drawer */}
       {isExpanded && (
-        <div className="p-3.5 border-t border-border/60 bg-surface/40 space-y-3 text-xs">
+        <div className="p-4 border-t border-border bg-surface/50 space-y-3 text-xs">
           {actionError && (
-            <div className="p-2.5 rounded-lg bg-status-red-bg border border-status-red-border text-status-red-text">
+            <div className="p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
               {actionError}
             </div>
           )}
 
-          {/* Timestamps & Personnel details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-muted-foreground bg-surface/60 p-2.5 rounded-lg border border-border/50">
+          {/* Personnel and timings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-muted-foreground bg-surface-raised p-3 rounded-xl border border-border">
             <div>
-              <span className="font-medium text-foreground">Assigned Supervisor: </span>
+              <span className="font-medium text-foreground">Assigned: </span>
               {task.assigned_supervisor ? task.assigned_supervisor.full_name : 'Unassigned'}
             </div>
             {task.started_at && (
@@ -326,13 +339,13 @@ export function TaskRow({
             )}
           </div>
 
-          {/* Completion Photo Preview if available */}
+          {/* Completion Evidence Photos */}
           {task.evidence && task.evidence.length > 0 && (
             <div className="space-y-1.5">
-              <span className="font-medium text-foreground">Task Completion Evidence:</span>
+              <span className="font-medium text-foreground">Photographic Proof of Work:</span>
               <div className="flex flex-wrap gap-2">
                 {task.evidence.map((ev) => (
-                  <div key={ev.id} className="relative rounded-lg overflow-hidden border border-border w-28 h-20 bg-surface-raised">
+                  <div key={ev.id} className="relative rounded-xl overflow-hidden bg-surface-raised w-28 h-20 border border-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={ev.storage_path} 
@@ -346,14 +359,14 @@ export function TaskRow({
           )}
 
           {/* Action Buttons Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40">
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-divider">
             {canStart && (
               <button
                 type="button"
                 onClick={handleStart}
-                className="min-h-[44px] px-3.5 py-2 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity flex items-center space-x-1.5"
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity flex items-center space-x-1.5"
               >
-                <Play className="w-4 h-4" />
+                <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Start Task</span>
               </button>
             )}
@@ -362,7 +375,7 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowCompleteForm(true)}
-                className="min-h-[44px] px-3.5 py-2 rounded-lg bg-green-700 dark:bg-green-600 text-white font-medium hover:opacity-90 transition-opacity flex items-center space-x-1.5"
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors flex items-center space-x-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Complete Task (Upload Photo)</span>
@@ -373,9 +386,9 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowProblemForm(true)}
-                className="min-h-[44px] px-3.5 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center space-x-1.5"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-surface-raised hover:bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium transition-colors flex items-center space-x-1.5"
               >
-                <AlertTriangle className="w-4 h-4" />
+                <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Report Problem</span>
               </button>
             )}
@@ -384,7 +397,7 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowResolveForm(true)}
-                className="min-h-[44px] px-3.5 py-2 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity flex items-center space-x-1.5"
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity flex items-center space-x-1.5"
               >
                 <span>Resolve Problem</span>
               </button>
@@ -394,10 +407,10 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowAssignForm(true)}
-                className="min-h-[44px] px-3 py-2 rounded-lg border border-border bg-surface hover:bg-surface-raised transition-colors flex items-center space-x-1.5 text-foreground font-medium"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-surface-raised hover:bg-surface-overlay transition-colors flex items-center space-x-1.5 text-foreground font-medium border border-border"
               >
-                <UserCheck className="w-4 h-4 text-muted-foreground" />
-                <span>{task.assigned_supervisor ? 'Reassign' : 'Assign Supervisor'}</span>
+                <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>{task.assigned_supervisor ? 'Reassign' : 'Assign'}</span>
               </button>
             )}
 
@@ -405,10 +418,10 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowEditForm(true)}
-                className="min-h-[44px] px-3 py-2 rounded-lg border border-border bg-surface hover:bg-surface-raised transition-colors flex items-center space-x-1.5 text-foreground font-medium"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-surface-raised hover:bg-surface-overlay transition-colors flex items-center space-x-1.5 text-foreground font-medium border border-border"
               >
-                <Edit3 className="w-4 h-4 text-muted-foreground" />
-                <span>Edit Instructions</span>
+                <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Edit</span>
               </button>
             )}
 
@@ -416,17 +429,17 @@ export function TaskRow({
               <button
                 type="button"
                 onClick={() => setShowReopenForm(true)}
-                className="min-h-[44px] px-3 py-2 rounded-lg border border-border bg-surface hover:bg-surface-raised transition-colors flex items-center space-x-1.5 text-status-red-text font-medium"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-surface-raised hover:bg-rose-500/10 transition-colors flex items-center space-x-1.5 text-rose-400 font-medium border border-rose-500/20"
               >
-                <RotateCcw className="w-4 h-4" />
-                <span>Reopen Completed Task</span>
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reopen Task</span>
               </button>
             )}
           </div>
 
           {/* Form: Complete Task Photo Modal / Inline */}
           {showCompleteForm && (
-            <form onSubmit={handleComplete} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
+            <form onSubmit={handleComplete} className="p-4 bg-surface rounded-2xl border border-border space-y-3 mt-3">
               <div className="font-semibold text-foreground text-sm">
                 Complete Task: {task.task_name}
               </div>
@@ -435,18 +448,18 @@ export function TaskRow({
                 required
                 onPhotoSelected={setCompletionPhoto}
               />
-              <div className="flex justify-end space-x-2 pt-2">
+              <div className="flex justify-end space-x-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowCompleteForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!completionPhoto}
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-green-700 dark:bg-green-600 text-white font-medium disabled:opacity-50"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium disabled:opacity-50"
                 >
                   Confirm Completion
                 </button>
@@ -454,37 +467,37 @@ export function TaskRow({
             </form>
           )}
 
-          {/* Form: Report Problem Modal / Inline */}
+          {/* Form: Report Problem */}
           {showProblemForm && (
-            <form onSubmit={handleReportProblem} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
-              <div className="font-semibold text-foreground text-sm">
+            <form onSubmit={handleReportProblem} className="p-4 bg-surface rounded-2xl border border-border space-y-3 mt-3">
+              <div className="font-semibold text-foreground text-sm text-rose-400">
                 Report Problem: {task.task_name}
               </div>
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Reason for blocking task <span className="text-red-500">*</span>
+                  Reason for blocking task <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   value={problemReason}
                   onChange={(e) => setProblemReason(e.target.value)}
-                  placeholder="e.g. Missing hardware, damaged slate thread, instructions unclear..."
+                  placeholder="Explain why this task cannot proceed..."
                   required
                   rows={3}
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setShowProblemForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!problemReason.trim()}
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-red-600 text-white font-medium disabled:opacity-50"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium disabled:opacity-50"
                 >
                   Submit Block Alert
                 </button>
@@ -494,7 +507,7 @@ export function TaskRow({
 
           {/* Form: Resolve Problem */}
           {showResolveForm && (
-            <form onSubmit={handleResolveProblem} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
+            <form onSubmit={handleResolveProblem} className="p-4 bg-surface rounded-2xl border border-border space-y-3 mt-3">
               <div className="font-semibold text-foreground text-sm">
                 Resolve Problem: {task.task_name}
               </div>
@@ -505,22 +518,22 @@ export function TaskRow({
                 <textarea
                   value={resolveNote}
                   onChange={(e) => setResolveNote(e.target.value)}
-                  placeholder="e.g. Parts replaced from warehouse, ready to resume."
+                  placeholder="How was the problem resolved?"
                   rows={2}
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setShowResolveForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-foreground text-background font-medium"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-foreground text-background font-medium"
                 >
                   Resume Work
                 </button>
@@ -530,18 +543,15 @@ export function TaskRow({
 
           {/* Form: Assign Supervisor */}
           {showAssignForm && (
-            <form onSubmit={handleAssign} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
+            <form onSubmit={handleAssign} className="p-4 bg-surface rounded-2xl border border-border space-y-3 mt-3">
               <div className="font-semibold text-foreground text-sm">
                 Assign Supervisor
               </div>
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Select Eligible Supervisor
-                </label>
                 <select
                   value={selectedSupervisor}
                   onChange={(e) => setSelectedSupervisor(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 >
                   <option value="">-- Unassigned --</option>
                   {eligibleSupervisors.map((sup) => (
@@ -555,13 +565,13 @@ export function TaskRow({
                 <button
                   type="button"
                   onClick={() => setShowAssignForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-foreground text-background font-medium"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-foreground text-background font-medium"
                 >
                   Save Assignment
                 </button>
@@ -571,85 +581,85 @@ export function TaskRow({
 
           {/* Form: Edit Task (Salesperson) */}
           {showEditForm && (
-            <form onSubmit={handleEdit} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
+            <form onSubmit={handleEdit} className="p-4 bg-surface rounded-2xl border border-border space-y-3 mt-3">
               <div className="font-semibold text-foreground text-sm">
-                Edit Task Instructions
+                Edit Task
               </div>
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Task Name <span className="text-red-500">*</span>
+                  Task Name
                 </label>
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   required
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Remark / Additional Instructions
+                  Remark / Instruction
                 </label>
                 <textarea
                   value={editRemark}
                   onChange={(e) => setEditRemark(e.target.value)}
                   rows={2}
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setShowEditForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-foreground text-background font-medium"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-foreground text-background font-medium"
                 >
-                  Save Instructions
+                  Save
                 </button>
               </div>
             </form>
           )}
 
-          {/* Form: Reopen Completed Task (Admin only) */}
+          {/* Form: Reopen Completed Task (Admin) */}
           {showReopenForm && (
-            <form onSubmit={handleReopen} className="p-3.5 bg-surface rounded-xl border border-border space-y-3 mt-3">
-              <div className="font-semibold text-foreground text-sm text-red-600 dark:text-red-400">
-                Reopen Completed Task
+            <form onSubmit={handleReopen} className="p-4 bg-surface rounded-2xl border border-rose-500/20 space-y-3 mt-3">
+              <div className="font-semibold text-rose-400 text-sm">
+                Reopen Task for Rework
               </div>
               <p className="text-muted-foreground text-[11px]">
-                Reopening this task will remove the table from Completed status and revoke public QR access until production is completed again.
+                Reopening will take this table out of Completed status and revoke public QR verification until completed again.
               </p>
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Mandatory Reason for Reopening <span className="text-red-500">*</span>
+                  Reason for Reopening <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   value={reopenReason}
                   onChange={(e) => setReopenReason(e.target.value)}
-                  placeholder="e.g. Quality inspection rejected cloth tension, requires re-tightening..."
+                  placeholder="Specify why rework is required..."
                   required
                   rows={2}
-                  className="w-full text-xs p-2.5 rounded-lg border border-border bg-surface-raised text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  className="w-full text-xs p-3 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setShowReopenForm(false)}
-                  className="min-h-[44px] px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface-raised"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised text-foreground hover:bg-surface-overlay"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!reopenReason.trim()}
-                  className="min-h-[44px] px-4 py-1.5 rounded-lg bg-red-600 text-white font-medium disabled:opacity-50"
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium disabled:opacity-50"
                 >
                   Confirm Reopen
                 </button>

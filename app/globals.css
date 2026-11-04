@@ -3,59 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --background: #fbfbfd;
+  --background: #f8f9fa;
   --surface: #ffffff;
-  --surface-raised: #f5f5f7;
-  --border: #e5e5ea;
-  --divider: #ebebf0;
-  --foreground: #1d1d1f;
-  --muted: #86868b;
-  --muted-foreground: #6e6e73;
+  --surface-raised: #f1f3f5;
+  --surface-overlay: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --divider: rgba(0, 0, 0, 0.06);
+  --foreground: #111827;
+  --muted: #6b7280;
+  --muted-foreground: #4b5563;
 
-  /* Semantic Task Row States (Light Mode) */
-  --status-neutral-bg: #f9f9fb;
-  --status-neutral-text: #1d1d1f;
-  --status-neutral-border: #e5e5ea;
+  /* Semantic Task Status Tokens (Soft light mode tints, NO harsh borders) */
+  --status-neutral-bg: rgba(107, 114, 128, 0.06);
+  --status-neutral-text: #374151;
 
-  --status-blue-bg: #f0f7ff;
-  --status-blue-text: #0066cc;
-  --status-blue-border: #c8e1ff;
+  --status-blue-bg: rgba(37, 99, 235, 0.08);
+  --status-blue-text: #1d4ed8;
 
-  --status-green-bg: #f0fdf4;
-  --status-green-text: #166534;
-  --status-green-border: #bbf7d0;
+  --status-green-bg: rgba(16, 185, 129, 0.1);
+  --status-green-text: #047857;
 
-  --status-red-bg: #fef2f2;
-  --status-red-text: #991b1b;
-  --status-red-border: #fecaca;
+  --status-red-bg: rgba(239, 68, 68, 0.08);
+  --status-red-text: #b91c1c;
 }
 
 .dark {
-  --background: #000000;
-  --surface: #161618;
-  --surface-raised: #222226;
-  --border: #2e2e32;
-  --divider: #26262a;
-  --foreground: #f5f5f7;
-  --muted: #8e8e93;
-  --muted-foreground: #a1a1a6;
+  --background: #09090b;
+  --surface: #141417;
+  --surface-raised: #1c1c20;
+  --surface-overlay: #222228;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --divider: rgba(255, 255, 255, 0.06);
+  --foreground: #f4f4f5;
+  --muted: #71717a;
+  --muted-foreground: #a1a1aa;
 
-  /* Semantic Task Row States (Dark Mode) */
-  --status-neutral-bg: #1c1c1e;
-  --status-neutral-text: #f5f5f7;
-  --status-neutral-border: #333336;
+  /* Semantic Task Status Tokens (Soft dark mode tints, ZERO white borders) */
+  --status-neutral-bg: rgba(255, 255, 255, 0.04);
+  --status-neutral-text: #d4d4d8;
 
-  --status-blue-bg: rgba(10, 132, 255, 0.14);
-  --status-blue-text: #70b6ff;
-  --status-blue-border: rgba(10, 132, 255, 0.28);
+  --status-blue-bg: rgba(59, 130, 246, 0.12);
+  --status-blue-text: #60a5fa;
 
-  --status-green-bg: rgba(48, 209, 88, 0.14);
-  --status-green-text: #4ade80;
-  --status-green-border: rgba(48, 209, 88, 0.28);
+  --status-green-bg: rgba(16, 185, 129, 0.12);
+  --status-green-text: #34d399;
 
-  --status-red-bg: rgba(255, 69, 58, 0.14);
-  --status-red-text: #f87171;
-  --status-red-border: rgba(255, 69, 58, 0.28);
+  --status-red-bg: rgba(244, 63, 94, 0.12);
+  --status-red-text: #fb7185;
 }
 
 * {
@@ -70,15 +66,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Touch targets for mobile */
+/* Touch targets */
 button, input, select, textarea, a {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Remove default scrollbar clutter */
+/* Apple-style subtle scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

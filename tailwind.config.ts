@@ -15,32 +15,29 @@ export default {
         foreground: "var(--foreground)",
         surface: "var(--surface)",
         "surface-raised": "var(--surface-raised)",
+        "surface-overlay": "var(--surface-overlay)",
         border: "var(--border)",
+        "border-subtle": "var(--border-subtle)",
         divider: "var(--divider)",
         muted: "var(--muted)",
         "muted-foreground": "var(--muted-foreground)",
         
-        // Semantic states - subtle backgrounds
         status: {
           neutral: {
             bg: "var(--status-neutral-bg)",
             text: "var(--status-neutral-text)",
-            border: "var(--status-neutral-border)",
           },
           blue: {
             bg: "var(--status-blue-bg)",
             text: "var(--status-blue-text)",
-            border: "var(--status-blue-border)",
           },
           green: {
             bg: "var(--status-green-bg)",
             text: "var(--status-green-text)",
-            border: "var(--status-green-border)",
           },
           red: {
             bg: "var(--status-red-bg)",
             text: "var(--status-red-text)",
-            border: "var(--status-red-border)",
           },
         },
       },
