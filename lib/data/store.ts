@@ -146,6 +146,50 @@ class ProductionDataStore {
     this.saveToStorage();
   }
 
+  public createUser(payload: {
+    id?: string;
+    full_name: string;
+    email: string;
+    role: 'ADMIN' | 'SALES' | 'SUPERVISOR';
+    is_active?: boolean;
+    factoryIds?: string[];
+  }): UserProfile {
+    this.hydrateFromStorage();
+    const id = payload.id || `user-${Date.now()}`;
+    const now = new Date().toISOString();
+    const newUser: UserProfile = {
+      id,
+      full_name: payload.full_name,
+      email: payload.email,
+      role: payload.role,
+      is_active: payload.is_active !== undefined ? payload.is_active : true,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const existingIndex = this.users.findIndex(u => u.id === id || u.email.toLowerCase() === payload.email.toLowerCase());
+    if (existingIndex >= 0) {
+      this.users[existingIndex] = { ...this.users[existingIndex], ...newUser };
+    } else {
+      this.users.push(newUser);
+    }
+
+    if (payload.factoryIds && payload.factoryIds.length > 0) {
+      this.factoryAccess = this.factoryAccess.filter(fa => fa.user_id !== id);
+      payload.factoryIds.forEach(fId => {
+        this.factoryAccess.push({
+          id: `fa-${Date.now()}-${fId}`,
+          user_id: id,
+          factory_id: fId,
+          created_at: now,
+        });
+      });
+    }
+
+    this.saveToStorage();
+    return newUser;
+  }
+
   public updateUserRole(userId: string, newRole: 'ADMIN' | 'SALES' | 'SUPERVISOR', adminId: string): { success: boolean; message: string } {
     this.hydrateFromStorage();
     const actor = this.users.find(u => u.id === adminId);
