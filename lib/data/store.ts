@@ -129,6 +129,77 @@ class ProductionDataStore {
     return user || this.users[0];
   }
 
+  public setSessionUser(user: UserProfile): void {
+    const existingIndex = this.users.findIndex(u => u.id === user.id);
+    if (existingIndex >= 0) {
+      this.users[existingIndex] = { ...this.users[existingIndex], ...user };
+    } else {
+      this.users.push(user);
+    }
+    this.currentUserId = user.id;
+    this.saveToStorage();
+  }
+
+  public updateUserRole(userId: string, newRole: 'ADMIN' | 'SALES' | 'SUPERVISOR', adminId: string): { success: boolean; message: string } {
+    this.hydrateFromStorage();
+    const actor = this.users.find(u => u.id === adminId);
+    if (actor?.role !== 'ADMIN') {
+      return { success: false, message: 'Only administrators can change user roles.' };
+    }
+
+    const targetUser = this.users.find(u => u.id === userId);
+    if (!targetUser) return { success: false, message: 'User not found.' };
+
+    targetUser.role = newRole;
+    targetUser.updated_at = new Date().toISOString();
+    this.saveToStorage();
+    return { success: true, message: `Role updated to ${newRole}.` };
+  }
+
+  public toggleUserApproval(userId: string, isActive: boolean, adminId: string): { success: boolean; message: string } {
+    this.hydrateFromStorage();
+    const actor = this.users.find(u => u.id === adminId);
+    if (actor?.role !== 'ADMIN') {
+      return { success: false, message: 'Only administrators can approve or suspend accounts.' };
+    }
+
+    const targetUser = this.users.find(u => u.id === userId);
+    if (!targetUser) return { success: false, message: 'User not found.' };
+
+    targetUser.is_active = isActive;
+    targetUser.updated_at = new Date().toISOString();
+    this.saveToStorage();
+    return { success: true, message: isActive ? 'Account approved.' : 'Account suspended.' };
+  }
+
+  public getUserFactoryAccess(userId: string): string[] {
+    this.hydrateFromStorage();
+    return this.factoryAccess.filter(fa => fa.user_id === userId).map(fa => fa.factory_id);
+  }
+
+  public setUserFactoryAccess(userId: string, factoryIds: string[], adminId: string): { success: boolean; message: string } {
+    this.hydrateFromStorage();
+    const actor = this.users.find(u => u.id === adminId);
+    if (actor?.role !== 'ADMIN') {
+      return { success: false, message: 'Only administrators can assign factory access.' };
+    }
+
+    // Remove existing
+    this.factoryAccess = this.factoryAccess.filter(fa => fa.user_id !== userId);
+    // Add new
+    factoryIds.forEach(fId => {
+      this.factoryAccess.push({
+        id: `fa-${Date.now()}-${fId}`,
+        user_id: userId,
+        factory_id: fId,
+        created_at: new Date().toISOString(),
+      });
+    });
+
+    this.saveToStorage();
+    return { success: true, message: 'Factory permissions updated.' };
+  }
+
   public setCurrentUser(userId: string): void {
     if (this.users.some(u => u.id === userId)) {
       this.currentUserId = userId;
