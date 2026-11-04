@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="104" fill="#1D1D1F"/>
+  <rect x="76" y="136" width="360" height="240" rx="28" fill="#10B981" stroke="#047857" stroke-width="14"/>
+  <!-- Pockets -->
+  <circle cx="96" cy="156" r="14" fill="#064E3B"/>
+  <circle cx="256" cy="150" r="12" fill="#064E3B"/>
+  <circle cx="416" cy="156" r="14" fill="#064E3B"/>
+  <circle cx="96" cy="356" r="14" fill="#064E3B"/>
+  <circle cx="256" cy="362" r="12" fill="#064E3B"/>
+  <circle cx="416" cy="356" r="14" fill="#064E3B"/>
+  <!-- Billiard balls -->
+  <circle cx="216" cy="256" r="16" fill="#EF4444"/>
+  <circle cx="248" cy="238" r="16" fill="#F59E0B"/>
+  <circle cx="248" cy="274" r="16" fill="#3B82F6"/>
+  <circle cx="330" cy="256" r="16" fill="#FFFFFF"/>
+</svg>
