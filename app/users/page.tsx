@@ -213,9 +213,21 @@ export default function AdminUsersPage() {
     setIsCreating(true);
 
     try {
+      const supabase = createClient();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (supabase && isSupabaseConfigured()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
+      if (currentUser?.role === 'ADMIN') {
+        headers['x-admin-role'] = 'ADMIN';
+      }
+
       const res = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           fullName: newFullName.trim(),
           email: newEmail.trim().toLowerCase(),
@@ -267,9 +279,21 @@ export default function AdminUsersPage() {
     setIsResettingPassword(true);
 
     try {
+      const supabase = createClient();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (supabase && isSupabaseConfigured()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
+      if (currentUser?.role === 'ADMIN') {
+        headers['x-admin-role'] = 'ADMIN';
+      }
+
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           userId: selectedUserForPasswordReset.id,
           newPassword: resetPassword,

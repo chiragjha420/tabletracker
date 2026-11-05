@@ -10,6 +10,53 @@ interface PhotoUploaderProps {
   initialPhoto?: string | null;
 }
 
+/**
+ * Compress and scale images client-side before upload.
+ * Reduces 10MB phone camera photos down to ~100KB, preventing Supabase free tier storage exhaustion.
+ */
+function compressImage(file: File, maxDimension = 1200, quality = 0.72): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function PhotoUploader({
   label,
   required = false,
@@ -24,46 +71,33 @@ export function PhotoUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileProcess = (file: File) => {
+  const handleFileProcess = async (file: File) => {
     setError(null);
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file (JPEG, PNG, WebP).');
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setError('Image must be under 15MB.');
+    if (file.size > 25 * 1024 * 1024) {
+      setError('Image must be under 25MB.');
       return;
     }
 
     setIsUploading(true);
     setProgress(30);
 
-    const reader = new FileReader();
-
-    reader.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percent = Math.round((e.loaded / e.total) * 90);
-        setProgress(percent);
-      }
-    };
-
-    reader.onload = () => {
-      const result = reader.result as string;
-      setTimeout(() => {
-        setProgress(100);
-        setIsUploading(false);
-        setPhotoPreview(result);
-        onPhotoSelected(result);
-      }, 200);
-    };
-
-    reader.onerror = () => {
+    try {
+      // 1. Client-side canvas compression: Resizes to max 1200px & 0.72 quality
+      // Reduces 10MB phone camera photos down to ~100KB to protect Supabase free tier storage
+      const compressedDataUrl = await compressImage(file, 1200, 0.72);
+      setProgress(100);
       setIsUploading(false);
-      setError('Failed to read image.');
-    };
-
-    reader.readAsDataURL(file);
+      setPhotoPreview(compressedDataUrl);
+      onPhotoSelected(compressedDataUrl);
+    } catch {
+      setIsUploading(false);
+      setError('Failed to process and compress image. Please try again.');
+    }
   };
 
   const handleClear = (e: React.MouseEvent) => {
