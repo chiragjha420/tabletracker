@@ -119,8 +119,8 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Apple-style Filter Capsules */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+      {/* Apple-style Filter Capsules without visible scrollbars */}
+      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
         {statusOptions.map((opt) => (
           <button
             key={opt.value}

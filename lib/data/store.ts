@@ -280,6 +280,44 @@ class ProductionDataStore {
     return [...this.factories];
   }
 
+  public addFactory(payload: { factory_name: string; address?: string }, adminId: string): { success: boolean; message: string; factory?: Factory } {
+    this.hydrateFromStorage();
+    const actor = this.users.find(u => u.id === adminId);
+    if (actor?.role !== 'ADMIN') {
+      return { success: false, message: 'Only administrators can add manufacturing facilities.' };
+    }
+    const cleanName = payload.factory_name.trim();
+    if (!cleanName || cleanName.length < 2) {
+      return { success: false, message: 'Facility name must be at least 2 characters.' };
+    }
+    const exists = this.factories.some(f => f.factory_name.toLowerCase() === cleanName.toLowerCase());
+    if (exists) {
+      return { success: false, message: 'A facility with this name already exists.' };
+    }
+    const newFactory: Factory = {
+      id: `fac-${Date.now()}`,
+      factory_name: cleanName,
+      address: payload.address?.trim() || '',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+    this.factories.push(newFactory);
+    this.saveToStorage();
+    return { success: true, message: 'Facility added successfully.', factory: newFactory };
+  }
+
+  public deleteFactory(factoryId: string, adminId: string): { success: boolean; message: string } {
+    this.hydrateFromStorage();
+    const actor = this.users.find(u => u.id === adminId);
+    if (actor?.role !== 'ADMIN') {
+      return { success: false, message: 'Only administrators can delete manufacturing facilities.' };
+    }
+    this.factories = this.factories.filter(f => f.id !== factoryId);
+    this.factoryAccess = this.factoryAccess.filter(fa => fa.factory_id !== factoryId);
+    this.saveToStorage();
+    return { success: true, message: 'Facility removed successfully.' };
+  }
+
   // --- TABLE STATUS CALCULATION ---
   public recalculateTableStatus(tableId: string): TableStatus {
     const table = this.tables.find(t => t.id === tableId);

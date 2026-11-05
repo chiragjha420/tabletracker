@@ -144,7 +144,7 @@ export default function CreateTablePage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Main Details Card */}
-        <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-surface border border-border space-y-4">
           {/* Reference Photo Uploader */}
           <PhotoUploader
             label="Finished Reference Photo"
@@ -192,7 +192,7 @@ export default function CreateTablePage() {
         </div>
 
         {/* Production Checklist Builder */}
-        <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-surface border border-border space-y-3 overflow-hidden">
           <div className="flex items-center justify-between pb-1">
             <span className="text-sm font-bold text-foreground">
               Production Checklist
@@ -213,9 +213,9 @@ export default function CreateTablePage() {
             {checklist.map((item, index) => (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-surface-raised border border-border space-y-2"
+                className="p-2.5 sm:p-3 rounded-xl bg-surface-raised border border-border space-y-2 overflow-hidden"
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 w-full min-w-0">
                   <span className="w-5 h-5 rounded-full bg-surface-overlay flex items-center justify-center text-[11px] font-bold text-muted-foreground shrink-0 border border-border">
                     {index + 1}
                   </span>
@@ -226,7 +226,7 @@ export default function CreateTablePage() {
                     onChange={(e) => updateRow(item.id, 'task_name', e.target.value)}
                     placeholder="Enter task name..."
                     required
-                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-surface text-foreground border border-border focus:outline-none focus:border-neutral-500"
+                    className="flex-1 min-w-0 text-xs px-2.5 sm:px-3 py-2 rounded-lg bg-surface text-foreground border border-border focus:outline-none focus:border-neutral-500"
                   />
 
                   <div className="flex items-center space-x-1 shrink-0">
@@ -234,7 +234,7 @@ export default function CreateTablePage() {
                       type="button"
                       disabled={index === 0}
                       onClick={() => moveRow(index, 'up')}
-                      className="p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-30 text-foreground border border-border"
+                      className="p-1 sm:p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-20 text-foreground border border-border"
                       title="Move up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
@@ -243,7 +243,7 @@ export default function CreateTablePage() {
                       type="button"
                       disabled={index === checklist.length - 1}
                       onClick={() => moveRow(index, 'down')}
-                      className="p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-30 text-foreground border border-border"
+                      className="p-1 sm:p-1.5 rounded-lg bg-surface hover:bg-surface-overlay disabled:opacity-20 text-foreground border border-border"
                       title="Move down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
@@ -251,7 +251,7 @@ export default function CreateTablePage() {
                     <button
                       type="button"
                       onClick={() => removeRow(item.id)}
-                      className="p-1.5 rounded-lg bg-surface hover:bg-rose-500/10 text-rose-400 transition-colors border border-border"
+                      className="p-1 sm:p-1.5 rounded-lg bg-surface hover:bg-rose-500/10 text-rose-400 transition-colors border border-border"
                       title="Delete row"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -264,21 +264,21 @@ export default function CreateTablePage() {
                   value={item.remark}
                   onChange={(e) => updateRow(item.id, 'remark', e.target.value)}
                   placeholder="Add remark or specific instructions (optional)..."
-                  className="w-full text-xs px-3 py-1.5 rounded-lg bg-surface text-muted-foreground placeholder:text-muted/60 border border-border focus:outline-none focus:border-neutral-500"
+                  className="w-full min-w-0 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-surface text-muted-foreground placeholder:text-muted/60 border border-border focus:outline-none focus:border-neutral-500"
                 />
               </div>
             ))}
 
             {/* Mandatory Dispatch Row */}
-            <div className="p-3 rounded-xl bg-surface-raised flex items-center justify-between text-xs text-muted-foreground border border-border">
-              <div className="flex items-center space-x-2">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-surface-raised flex items-center justify-between text-xs text-muted-foreground border border-border gap-2">
+              <div className="flex items-center space-x-2 min-w-0">
                 <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="font-semibold text-foreground">
+                <span className="font-medium text-foreground text-xs truncate">
                   {checklist.length + 1}. Dispatch & Packing (Final Checkpoint)
                 </span>
               </div>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-surface text-muted border border-border">
-                Mandatory
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted-foreground border border-border shrink-0">
+                MANDATORY
               </span>
             </div>
           </div>

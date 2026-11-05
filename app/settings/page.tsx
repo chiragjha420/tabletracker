@@ -3,23 +3,47 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/components/user-context';
 import { useTheme } from '@/components/theme-provider';
-import { dataStore } from '@/lib/data/store';
-import { isSupabaseConfigured } from '@/lib/supabase/client';
-import { Sun, Moon, Laptop, Factory, Database, Users, LogOut } from 'lucide-react';
+import { 
+  playChime, 
+  triggerVibration, 
+  requestNotificationPermission, 
+  dispatchNotification 
+} from '@/lib/notifications/sound-vibration';
+import { Sun, Moon, Laptop, Users, LogOut, Bell, Volume2, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
   const { currentUser, signOut } = useUser();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
   }, []);
 
-  const factories = dataStore.getFactories();
-  const hasSupabase = isSupabaseConfigured();
   const isAdmin = currentUser.role === 'ADMIN';
+
+  const handleEnableNotifications = async () => {
+    const res = await requestNotificationPermission();
+    setNotificationPermission(res);
+    if (res === 'granted') {
+      setTestFeedback('Push notifications with sound and vibration enabled!');
+      setTimeout(() => setTestFeedback(null), 3000);
+    }
+  };
+
+  const handleTestSoundAndVibration = () => {
+    playChime(false);
+    triggerVibration(false);
+    dispatchNotification('JBB TableTracker Notification Test', 'Sound chime and phone vibration are working perfectly!');
+    setTestFeedback('Chime played & vibration triggered!');
+    setTimeout(() => setTestFeedback(null), 3000);
+  };
 
   if (!mounted) {
     return (
@@ -59,7 +83,7 @@ export default function SettingsPage() {
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-surface-overlay text-xs font-semibold text-foreground border border-border transition-colors"
             >
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>User Approvals & Roles</span>
+              <span>User & Factory Management</span>
             </Link>
           )}
 
@@ -126,44 +150,70 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Facilities */}
-      <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+      {/* Push Notifications, Sound & Vibration */}
+      <div className="p-5 rounded-2xl bg-surface border border-border space-y-3.5">
         <div className="flex items-center space-x-2">
-          <Factory className="w-4 h-4 text-muted-foreground" />
+          <Bell className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-bold text-foreground">
-            Manufacturing Facilities
+            Push Notifications & Vibration
           </span>
         </div>
 
-        <div className="space-y-2 text-xs">
-          {factories.map((fac) => (
-            <div key={fac.id} className="p-3 rounded-xl bg-surface-raised border border-border">
-              <div className="font-semibold text-foreground">{fac.factory_name}</div>
-              <div className="text-muted-foreground text-[11px] mt-0.5">{fac.address}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Supabase Connection */}
-      <div className="p-5 rounded-2xl bg-surface border border-border space-y-2 text-xs">
-        <div className="flex items-center space-x-2">
-          <Database className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-bold text-foreground">
-            Supabase Connection
-          </span>
-        </div>
-        <p className="text-muted-foreground">
-          {hasSupabase ? (
-            <span className="text-emerald-400 font-medium">
-              Connected to your Supabase project. Authentication, Storage, and PostgreSQL are active.
-            </span>
-          ) : (
-            <span>
-              Connect your Supabase project in <code className="font-mono bg-surface-raised px-1 py-0.5 rounded border border-border">.env.local</code>. Database migration scripts are ready in <code className="font-mono bg-surface-raised px-1 py-0.5 rounded border border-border">supabase/migrations/</code>.
-            </span>
-          )}
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Receive real-time push notifications with sound chimes and phone vibration whenever tables are submitted, tasks start, issues arise, or tables are dispatched.
         </p>
+
+        <div className="p-3 rounded-xl bg-surface-raised border border-border space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Notification Permission:</span>
+            <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] capitalize ${
+              notificationPermission === 'granted' 
+                ? 'bg-emerald-500/15 text-emerald-400' 
+                : notificationPermission === 'denied'
+                ? 'bg-rose-500/15 text-rose-400'
+                : 'bg-surface-overlay text-foreground'
+            }`}>
+              {notificationPermission}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2 text-[11px] text-muted-foreground pt-1">
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>High-definition audio chime enabled</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[11px] text-muted-foreground">
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Mobile vibration haptics supported</span>
+          </div>
+        </div>
+
+        {testFeedback && (
+          <div className="text-xs text-emerald-400 font-medium py-1 animate-in fade-in">
+            ✓ {testFeedback}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+          {notificationPermission !== 'granted' && (
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              className="min-h-[40px] px-4 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center space-x-1.5"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Enable Browser Push Notifications</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleTestSoundAndVibration}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-surface-raised hover:bg-surface-overlay text-foreground text-xs font-medium border border-border transition-colors flex items-center justify-center space-x-1.5"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>Test Sound & Vibration Now</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -53,42 +53,42 @@ export function Navigation() {
     <>
       {/* Sleek Frosted Header */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <span className="font-semibold text-base sm:text-lg tracking-tight text-foreground">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 shrink-0 min-w-0">
+            <Link href="/dashboard" className="flex items-center space-x-1.5 shrink-0">
+              <span className="font-bold text-sm sm:text-base tracking-tight text-foreground whitespace-nowrap">
                 JBB TableTracker
               </span>
             </Link>
-            <span suppressHydrationWarning className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-surface-raised text-muted-foreground border border-border">
+            <span suppressHydrationWarning className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium bg-surface-raised text-muted-foreground border border-border shrink-0">
               {currentUser.role}
             </span>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
             {/* Notifications */}
             <Link
               href="/notifications"
-              className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-raised transition-colors flex items-center"
+              className="relative p-1.5 sm:p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-raised transition-colors flex items-center shrink-0"
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="ml-1.5 text-[11px] font-semibold px-1.5 py-0.2 bg-foreground text-background rounded-full">
+                <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.2 bg-foreground text-background rounded-full">
                   {unreadCount}
                 </span>
               )}
             </Link>
 
             {/* Profile & Sign Out (No user-switching dropdown) */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full bg-surface-raised hover:bg-surface-overlay text-foreground transition-colors border border-border"
+                className="flex items-center space-x-1.5 text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full bg-surface-raised hover:bg-surface-overlay text-foreground transition-colors border border-border shrink-0"
               >
-                <span suppressHydrationWarning className="truncate max-w-[100px] sm:max-w-[140px]">{currentUser.full_name}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                <span suppressHydrationWarning className="truncate max-w-[70px] sm:max-w-[130px]">{currentUser.full_name}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </button>
 
               {profileDropdownOpen && (
@@ -168,8 +168,8 @@ export function Navigation() {
       </header>
 
       {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/90 backdrop-blur-xl">
-        <div className={`grid grid-cols-${navItems.length} h-16 max-w-md mx-auto`}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-xl">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
           {navItems.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -177,12 +177,12 @@ export function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center py-1 transition-colors ${
                   active ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-[11px]">{item.label}</span>
+                <Icon className="w-5 h-5 mb-0.5" />
+                <span className="text-[10px] leading-tight truncate px-0.5">{item.label}</span>
               </Link>
             );
           })}

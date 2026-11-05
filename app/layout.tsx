@@ -5,6 +5,7 @@ import { UserProvider } from '@/components/user-context';
 import { Navigation } from '@/components/navigation';
 import { OfflineBanner } from '@/components/offline-banner';
 import { ServiceWorkerRegister } from '@/components/sw-register';
+import { NotificationListener } from '@/components/notification-listener';
 
 export const metadata: Metadata = {
   title: 'JBB TableTracker — Factory Production Tracker',
@@ -37,6 +38,7 @@ export default function RootLayout({
           <UserProvider>
             <ServiceWorkerRegister />
             <OfflineBanner />
+            <NotificationListener />
             <Navigation />
             <main className="max-w-6xl mx-auto px-4 py-6">
               {children}
