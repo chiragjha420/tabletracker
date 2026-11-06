@@ -524,7 +524,7 @@ class ProductionDataStore {
   }): TableOrder {
     this.hydrateFromStorage();
     const now = new Date().toISOString();
-    const tableId = `tbl-${Date.now()}`;
+    const tableId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `tbl-${Date.now()}`;
     const codeNum = (this.tables.length + 1).toString().padStart(3, '0');
     const tableCode = `JBB-2026-${codeNum}`;
 
@@ -550,7 +550,7 @@ class ProductionDataStore {
     // Create user checklist build tasks
     payload.checklist.forEach((item, index) => {
       this.tasks.push({
-        id: `task-${Date.now()}-${index + 1}`,
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}-${index + 1}`,
         table_id: tableId,
         task_name: item.task_name,
         remark: item.remark || null,
@@ -569,7 +569,7 @@ class ProductionDataStore {
 
     // Automatically append mandatory Dispatch & Packing task
     this.tasks.push({
-      id: `task-disp-${Date.now()}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `task-disp-${Date.now()}`,
       table_id: tableId,
       task_name: 'Dispatch & Packing',
       remark: 'Verify total nags, driver name, phone and upload loaded truck photo.',

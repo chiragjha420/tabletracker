@@ -3,23 +3,103 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { dataStore } from '@/lib/data/store';
-import { CheckCircle2, ShieldCheck, Clock, User, AlertCircle } from 'lucide-react';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { CheckCircle2, ShieldCheck, Clock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function PublicQrHistoryPage() {
   const params = useParams();
   const token = (params?.token as string) || '';
   const [data, setData] = useState(() => dataStore.getPublicTableHistory(token));
+  const [loading, setLoading] = useState(() => !dataStore.getPublicTableHistory(token).found);
 
   useEffect(() => {
-    if (token) {
-      setData(dataStore.getPublicTableHistory(token));
-      const unsub = dataStore.subscribe(() => {
-        setData(dataStore.getPublicTableHistory(token));
-      });
-      return unsub;
+    if (!token) return;
+
+    const localData = dataStore.getPublicTableHistory(token);
+    if (localData.found) {
+      setData(localData);
+      setLoading(false);
+      return;
+    }
+
+    // Cross-device lookup via Supabase
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      (async () => {
+        try {
+          const { data: qrRow } = await supabase
+            .from('qr_access')
+            .select('table_id, is_active')
+            .eq('token_hash', token)
+            .single();
+
+          if (qrRow && qrRow.is_active) {
+            const { data: tRow } = await supabase
+              .from('tables')
+              .select('*')
+              .eq('id', qrRow.table_id)
+              .single();
+
+            const { data: dRow } = await supabase
+              .from('dispatch_details')
+              .select('*')
+              .eq('table_id', qrRow.table_id)
+              .single();
+
+            const { data: tasks } = await supabase
+              .from('tasks')
+              .select('*')
+              .eq('table_id', qrRow.table_id)
+              .eq('status', 'COMPLETED')
+              .order('sequence_number', { ascending: true });
+
+            if (tRow) {
+              setData({
+                found: true,
+                table_code: tRow.table_code,
+                table_name: tRow.table_name,
+                table_type: tRow.table_type,
+                reference_photo_path: tRow.reference_photo_path,
+                status: tRow.status,
+                dispatched_at: tRow.dispatched_at,
+                created_at: tRow.created_at,
+                nags_count: dRow?.nags_count,
+                driver_name: dRow?.driver_name,
+                packed_table_photo_path: dRow?.packed_table_photo_path,
+                completed_tasks: (tasks || []).map((tsk: any) => ({
+                  sequence_number: tsk.sequence_number,
+                  task_name: tsk.task_name,
+                  task_type: (tsk.task_type || 'BUILD') as 'BUILD' | 'DISPATCH',
+                  completed_at: tsk.completed_at,
+                  completed_by_name: 'Factory Supervisor',
+                  photos: [],
+                })),
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Remote QR certificate lookup error:', err);
+        }
+        setLoading(false);
+      })();
+    } else {
+      setLoading(false);
     }
   }, [token]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="flex flex-col items-center space-y-3">
+          <Loader2 className="w-8 h-8 text-foreground animate-spin" />
+          <span className="text-xs text-muted-foreground">Verifying production certificate...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!data.found) {
     return (

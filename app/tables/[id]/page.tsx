@@ -19,10 +19,13 @@ import {
   RefreshCw,
   Ban,
   Maximize2,
-  X
+  X,
+  QrCode,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import QRCode from 'qrcode';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export default function TableDetailsPage() {
   const params = useParams();
@@ -49,13 +52,27 @@ export default function TableDetailsPage() {
     setTableData(data);
 
     if (data?.qrToken) {
-      const publicUrl = `${window.location.origin}/qr/${data.qrToken}`;
-      QRCode.toDataURL(publicUrl, { width: 256, margin: 2 }, (err, url) => {
-        if (!err) setQrCodeDataUrl(url);
-      });
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://tabletracker.vercel.app';
+      const publicUrl = `${origin}/qr/${data.qrToken}`;
+      QRCode.toDataURL(publicUrl, { width: 300, margin: 2 })
+        .then((url) => setQrCodeDataUrl(url))
+        .catch((err) => {
+          console.error('QR code generation error:', err);
+          setQrCodeDataUrl(null);
+        });
     } else {
       setQrCodeDataUrl(null);
     }
+  };
+
+  const handleDownloadQr = () => {
+    if (!qrCodeDataUrl || !tableData) return;
+    const link = document.createElement('a');
+    link.href = qrCodeDataUrl;
+    link.download = `${tableData.table.table_code}-QR-Certificate.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -104,7 +121,7 @@ export default function TableDetailsPage() {
   };
 
   // Dispatch completion handler
-  const handleCompleteDispatch = (e: React.FormEvent) => {
+  const handleCompleteDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
     setActionSuccess(null);
@@ -121,16 +138,63 @@ export default function TableDetailsPage() {
 
     if (!res.success) {
       setActionError(res.message);
-    } else {
-      setActionSuccess('Dispatch successfully recorded. Unique QR certificate generated.');
-      loadData();
+      return;
     }
+
+    // Sync dispatch record and QR token to Supabase for global/cross-device verification
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured() && res.qrToken) {
+      try {
+        await supabase.from('tables').upsert({
+          id: table.id,
+          table_code: table.table_code,
+          table_name: table.table_name,
+          table_type: table.table_type,
+          reference_photo_path: table.reference_photo_path,
+          salesperson_id: table.salesperson_id,
+          lead_supervisor_id: table.lead_supervisor_id || currentUser.id,
+          status: 'Completed / Dispatched',
+          dispatched_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        await supabase.from('dispatch_details').upsert({
+          id: `disp-${table.id}`,
+          table_id: table.id,
+          dispatch_task_id: dispatchTask?.id,
+          nags_count: Number(nagsCount),
+          driver_name: driverName.trim(),
+          driver_phone: driverPhone.trim(),
+          packed_table_photo_path: packedPhoto,
+          dispatched_by: currentUser.id,
+          dispatched_at: new Date().toISOString(),
+        });
+
+        await supabase.from('qr_access').upsert({
+          id: `qr-${table.id}`,
+          table_id: table.id,
+          token_hash: res.qrToken,
+          is_active: true,
+          generated_at: new Date().toISOString(),
+          revoked_at: null,
+        });
+      } catch (err) {
+        console.error('Remote dispatch sync error:', err);
+      }
+    }
+
+    setActionSuccess('Dispatch successfully recorded. Unique QR certificate generated.');
+    loadData();
   };
 
   const handleRevokeQr = () => {
     setActionError(null);
     const ok = dataStore.revokeQr(table.id, currentUser.id);
     if (ok) {
+      const supabase = createClient();
+      if (supabase && isSupabaseConfigured()) {
+        supabase.from('qr_access').update({ is_active: false, revoked_at: new Date().toISOString() }).eq('table_id', table.id).then();
+      }
       setActionSuccess('Public QR access token revoked.');
       loadData();
     }
@@ -140,6 +204,18 @@ export default function TableDetailsPage() {
     setActionError(null);
     const newToken = dataStore.regenerateQr(table.id, currentUser.id);
     if (newToken) {
+      const supabase = createClient();
+      if (supabase && isSupabaseConfigured()) {
+        supabase.from('qr_access').update({ is_active: false, revoked_at: new Date().toISOString() }).eq('table_id', table.id).then(() => {
+          supabase.from('qr_access').insert({
+            id: `qr-${table.id}-${Date.now()}`,
+            table_id: table.id,
+            token_hash: newToken,
+            is_active: true,
+            generated_at: new Date().toISOString(),
+          }).then();
+        });
+      }
       setActionSuccess('New QR token generated successfully.');
       loadData();
     }
@@ -265,12 +341,12 @@ export default function TableDetailsPage() {
         </div>
       </div>
 
-      {/* QR Certificate Box */}
-      {isCompleted && qrToken && qrCodeDataUrl && (
+      {/* QR Certificate Box (Active when Dispatched) */}
+      {isCompleted && qrToken && qrCodeDataUrl ? (
         <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-white rounded-xl shrink-0">
+              <div className="p-2 bg-white rounded-xl shrink-0 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qrCodeDataUrl} alt="Table QR Code" className="w-20 h-20" />
               </div>
@@ -281,15 +357,25 @@ export default function TableDetailsPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Unique QR certificate generated for this completed table.
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2.5 flex flex-wrap gap-2">
                   <Link
                     href={`/qr/${qrToken}`}
                     target="_blank"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors"
                   >
                     <span>Open Certificate</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadQr}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-raised border border-border text-xs font-medium text-foreground transition-colors"
+                    title="Download QR code image for printing"
+                  >
+                    <Download className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Download QR</span>
+                  </button>
 
                   {isAdmin && (
                     <>
@@ -315,6 +401,24 @@ export default function TableDetailsPage() {
               </div>
             </div>
           </div>
+        </div>
+      ) : (
+        /* QR Certificate Box (Pending State when still In-Progress) */
+        <div className="p-4 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-surface-raised text-muted-foreground shrink-0 border border-border">
+              <QrCode className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground">QR Production Certificate</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                Automatically generated upon final dispatch checkpoint completion.
+              </div>
+            </div>
+          </div>
+          <span className="text-[11px] px-2.5 py-1 rounded-full bg-surface-raised text-muted-foreground font-medium border border-border shrink-0 self-start sm:self-auto">
+            Pending Final Dispatch
+          </span>
         </div>
       )}
 

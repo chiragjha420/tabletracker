@@ -17,6 +17,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 interface ChecklistDraftItem {
   id: string;
@@ -109,6 +110,21 @@ export default function CreateTablePage() {
           remark: t.remark.trim() || undefined,
         })),
       });
+
+      // Sync table record to Supabase if configured
+      const supabase = createClient();
+      if (supabase && isSupabaseConfigured()) {
+        supabase.from('tables').insert({
+          id: newTable.id,
+          table_code: newTable.table_code,
+          table_name: newTable.table_name,
+          table_type: newTable.table_type,
+          reference_photo_path: newTable.reference_photo_path,
+          salesperson_id: currentUser.id,
+          factory_id: (selectedFactoryId && selectedFactoryId.length > 20) ? selectedFactoryId : null,
+          status: 'Submitted',
+        }).then();
+      }
 
       router.push(`/dashboard`);
     } catch (err: any) {
