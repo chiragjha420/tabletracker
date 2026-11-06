@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { useUser } from './user-context';
 import { 
   dispatchNotification, 
   requestNotificationPermission, 
@@ -19,13 +21,20 @@ interface ToastAlert {
 }
 
 export function NotificationListener() {
+  const pathname = usePathname();
+  const { currentUser } = useUser();
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(true); // Default true until mounted check
   const [activeToast, setActiveToast] = useState<ToastAlert | null>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
+    if (typeof window !== 'undefined') {
+      if ('Notification' in window) {
+        setPermission(Notification.permission);
+      }
+      const isDismissed = localStorage.getItem('jbb_notification_prompt_dismissed') === 'true';
+      setBannerDismissed(isDismissed);
     }
   }, []);
 
@@ -100,32 +109,62 @@ export function NotificationListener() {
   useEffect(() => {
     let lastTableCount = dataStore.getTables().length;
 
+    // Suppress false alerts during initial load/hydration for the first 2 seconds
+    const initTimer = setTimeout(() => {
+      lastTableCount = dataStore.getTables().length;
+      isInitialized.current = true;
+    }, 2000);
+
     const unsub = dataStore.subscribe(() => {
       const currentTables = dataStore.getTables();
-      if (currentTables.length > lastTableCount) {
-        lastTableCount = currentTables.length;
+      if (isInitialized.current && currentTables.length > lastTableCount) {
         triggerLiveAlert('New Table Added', 'A new table order has been added to production.', 'info');
-      } else {
-        lastTableCount = currentTables.length;
       }
+      lastTableCount = currentTables.length;
     });
 
-    return unsub;
+    return () => {
+      clearTimeout(initTimer);
+      unsub();
+    };
   }, []);
 
   const handleEnableNotifications = async () => {
     const res = await requestNotificationPermission();
     setPermission(res);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jbb_notification_prompt_dismissed', 'true');
+    }
+    setBannerDismissed(true);
     if (res === 'granted') {
       triggerLiveAlert('Notifications Enabled', 'Real-time sound and vibration alerts are now active.', 'success');
     }
   };
 
+  const handleDismissBanner = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jbb_notification_prompt_dismissed', 'true');
+    }
+    setBannerDismissed(true);
+  };
+
+  // NEVER show prompt on login, signup, public QR certificate, or when not authenticated
+  const isAuthOrPublic = 
+    pathname === '/login' || 
+    pathname === '/signup' || 
+    pathname.startsWith('/qr/');
+
+  const shouldShowPrompt = 
+    !isAuthOrPublic && 
+    currentUser && 
+    permission === 'default' && 
+    !bannerDismissed;
+
   return (
     <>
-      {/* Permission Enable Banner (Prompt once if not granted) */}
-      {permission === 'default' && !bannerDismissed && (
-        <div className="fixed top-16 left-4 right-4 z-50 max-w-md mx-auto p-3 rounded-2xl bg-surface-overlay border border-border shadow-2xl flex items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-4 duration-300">
+      {/* Permission Enable Banner (Docked cleanly above bottom nav, never overlapping content or headers) */}
+      {shouldShowPrompt && (
+        <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:max-w-md z-40 max-w-md mx-auto p-3.5 rounded-2xl bg-surface border border-border shadow-2xl flex items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center space-x-2.5 min-w-0">
             <div className="p-2 rounded-xl bg-foreground text-background shrink-0">
               <Bell className="w-4 h-4" />
@@ -145,7 +184,7 @@ export function NotificationListener() {
             </button>
             <button
               type="button"
-              onClick={() => setBannerDismissed(true)}
+              onClick={handleDismissBanner}
               className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
               aria-label="Dismiss"
             >
@@ -155,19 +194,16 @@ export function NotificationListener() {
         </div>
       )}
 
-      {/* Floating Live Alert Toast (In-App) */}
+      {/* Floating Live Alert Toast (In-App Top Right) */}
       {activeToast && (
         <div 
-          onClick={() => {
-            playChime(activeToast.type === 'alert');
-            triggerVibration(activeToast.type === 'alert');
-          }}
-          className={`fixed top-16 left-4 right-4 z-50 max-w-md mx-auto p-3.5 rounded-2xl shadow-2xl border flex items-center justify-between gap-3 text-xs cursor-pointer animate-in fade-in slide-in-from-top-4 duration-300 backdrop-blur-xl ${
+          onClick={() => setActiveToast(null)}
+          className={`fixed top-4 md:top-6 right-4 left-4 md:left-auto md:max-w-sm z-50 p-3.5 rounded-2xl shadow-2xl border flex items-center justify-between gap-3 text-xs cursor-pointer animate-in fade-in slide-in-from-top-4 duration-300 backdrop-blur-xl ${
             activeToast.type === 'alert'
               ? 'bg-rose-500/15 border-rose-500/30 text-rose-200'
               : activeToast.type === 'success'
               ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200'
-              : 'bg-surface-overlay/95 border-border text-foreground'
+              : 'bg-surface/95 border-border text-foreground'
           }`}
         >
           <div className="flex items-center space-x-3 min-w-0">

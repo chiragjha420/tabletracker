@@ -25,22 +25,7 @@ export const INITIAL_USERS: UserProfile[] = [
   },
 ];
 
-export const INITIAL_FACTORIES: Factory[] = [
-  {
-    id: 'a0000000-0000-0000-0000-000000000001',
-    factory_name: 'Bangalore Main Facility',
-    address: 'Plot 42, Peenya Industrial Area, Phase II, Bangalore',
-    is_active: true,
-    created_at: '2026-01-01T06:00:00Z',
-  },
-  {
-    id: 'a0000000-0000-0000-0000-000000000002',
-    factory_name: 'Hosur Satellite Unit',
-    address: 'Phase 2, SIPCOT Industrial Complex, Hosur, Tamil Nadu',
-    is_active: true,
-    created_at: '2026-01-01T06:00:00Z',
-  },
-];
+export const INITIAL_FACTORIES: Factory[] = [];
 
 export const INITIAL_FACTORY_ACCESS: FactoryAccess[] = [];
 export const INITIAL_TABLES: TableOrder[] = [];

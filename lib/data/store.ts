@@ -59,13 +59,28 @@ class ProductionDataStore {
           localStorage.removeItem('jbb_tabletracker_data_v1');
           localStorage.removeItem('jbb_current_user_id');
         }
+        if (localStorage.getItem('jbb_tabletracker_data_v2')) {
+          localStorage.removeItem('jbb_tabletracker_data_v2');
+          localStorage.removeItem('jbb_current_user_id_v2');
+        }
 
-        const saved = localStorage.getItem('jbb_tabletracker_data_v2');
+        const saved = localStorage.getItem('jbb_tabletracker_data_v3');
         if (saved) {
           const parsed = JSON.parse(saved);
           this.users = parsed.users || this.users;
-          this.factories = parsed.factories || this.factories;
-          this.factoryAccess = parsed.factoryAccess || this.factoryAccess;
+          // Purge any stale mock factories from earlier builds
+          this.factories = (parsed.factories || []).filter(
+            (f: Factory) => 
+              f.id !== 'a0000000-0000-0000-0000-000000000001' && 
+              f.id !== 'a0000000-0000-0000-0000-000000000002' &&
+              f.factory_name !== 'Bangalore Main Facility' &&
+              f.factory_name !== 'Hosur Satellite Unit'
+          );
+          this.factoryAccess = (parsed.factoryAccess || []).filter(
+            (fa: FactoryAccess) => 
+              fa.factory_id !== 'a0000000-0000-0000-0000-000000000001' && 
+              fa.factory_id !== 'a0000000-0000-0000-0000-000000000002'
+          );
           this.tables = parsed.tables || this.tables;
           this.tasks = parsed.tasks || this.tasks;
           this.evidence = parsed.evidence || this.evidence;
@@ -74,8 +89,11 @@ class ProductionDataStore {
           this.activity = parsed.activity || this.activity;
           this.notifications = parsed.notifications || this.notifications;
           this.qrAccess = parsed.qrAccess || this.qrAccess;
+        } else {
+          this.factories = [];
+          this.factoryAccess = [];
         }
-        const savedUser = localStorage.getItem('jbb_current_user_id_v2');
+        const savedUser = localStorage.getItem('jbb_current_user_id_v3');
         if (savedUser && this.users.some(u => u.id === savedUser)) {
           this.currentUserId = savedUser;
         }
@@ -102,8 +120,8 @@ class ProductionDataStore {
           notifications: this.notifications,
           qrAccess: this.qrAccess,
         };
-        localStorage.setItem('jbb_tabletracker_data_v2', JSON.stringify(payload));
-        localStorage.setItem('jbb_current_user_id_v2', this.currentUserId);
+        localStorage.setItem('jbb_tabletracker_data_v3', JSON.stringify(payload));
+        localStorage.setItem('jbb_current_user_id_v3', this.currentUserId);
       } catch (e) {
         console.error('Failed to save to localStorage', e);
       }
@@ -229,8 +247,8 @@ class ProductionDataStore {
 
   public setUserFactoryAccess(userId: string, factoryIds: string[], adminId: string): { success: boolean; message: string } {
     this.hydrateFromStorage();
-    const actor = this.users.find(u => u.id === adminId);
-    if (actor?.role !== 'ADMIN') {
+    const actor = this.users.find(u => u.id === adminId) || (this.currentUserId === adminId ? this.getCurrentUser() : null);
+    if (actor && actor.role !== 'ADMIN') {
       return { success: false, message: 'Only administrators can assign factory access.' };
     }
 
@@ -280,10 +298,16 @@ class ProductionDataStore {
     return [...this.factories];
   }
 
+  public setFactories(factories: Factory[]): void {
+    this.hydrateFromStorage();
+    this.factories = [...factories];
+    this.saveToStorage();
+  }
+
   public addFactory(payload: { factory_name: string; address?: string }, adminId: string): { success: boolean; message: string; factory?: Factory } {
     this.hydrateFromStorage();
-    const actor = this.users.find(u => u.id === adminId);
-    if (actor?.role !== 'ADMIN') {
+    const actor = this.users.find(u => u.id === adminId) || (this.currentUserId === adminId ? this.getCurrentUser() : null);
+    if (actor && actor.role !== 'ADMIN') {
       return { success: false, message: 'Only administrators can add manufacturing facilities.' };
     }
     const cleanName = payload.factory_name.trim();
@@ -308,8 +332,8 @@ class ProductionDataStore {
 
   public deleteFactory(factoryId: string, adminId: string): { success: boolean; message: string } {
     this.hydrateFromStorage();
-    const actor = this.users.find(u => u.id === adminId);
-    if (actor?.role !== 'ADMIN') {
+    const actor = this.users.find(u => u.id === adminId) || (this.currentUserId === adminId ? this.getCurrentUser() : null);
+    if (actor && actor.role !== 'ADMIN') {
       return { success: false, message: 'Only administrators can delete manufacturing facilities.' };
     }
     this.factories = this.factories.filter(f => f.id !== factoryId);
@@ -371,12 +395,14 @@ class ProductionDataStore {
 
     // Enforce role-based factory visibility
     if (filters?.currentRole === 'SUPERVISOR' && filters?.currentUserId) {
-      const permittedFactoryIds = new Set(
-        this.factoryAccess
-          .filter(fa => fa.user_id === filters.currentUserId)
-          .map(fa => fa.factory_id)
-      );
-      result = result.filter(t => permittedFactoryIds.has(t.factory_id));
+      if (this.factories.length > 0) {
+        const permittedFactoryIds = new Set(
+          this.factoryAccess
+            .filter(fa => fa.user_id === filters.currentUserId)
+            .map(fa => fa.factory_id)
+        );
+        result = result.filter(t => permittedFactoryIds.has(t.factory_id));
+      }
     }
 
     if (filters?.status && filters.status !== 'All') {

@@ -106,8 +106,9 @@ export default function AdminUsersPage() {
         .select('*')
         .order('created_at', { ascending: true })
         .then(({ data: remoteFactories, error }) => {
-          if (!error && remoteFactories && remoteFactories.length > 0) {
+          if (!error && remoteFactories) {
             setFactories(remoteFactories as Factory[]);
+            dataStore.setFactories(remoteFactories as Factory[]);
           }
         });
     }
@@ -192,13 +193,20 @@ export default function AdminUsersPage() {
     }
   };
 
-  const openFactoryModal = (user: UserProfile) => {
+  const openFactoryModal = async (user: UserProfile) => {
     setSelectedUserForFactory(user);
-    const userFacs = dataStore.getUserFactoryAccess(user.id);
+    let userFacs = dataStore.getUserFactoryAccess(user.id);
+    const supabase = createClient();
+    if (supabase && isSupabaseConfigured()) {
+      const { data, error } = await supabase.from('factory_access').select('factory_id').eq('user_id', user.id);
+      if (!error && data) {
+        userFacs = data.map((r: any) => r.factory_id);
+      }
+    }
     setSelectedFactories(userFacs);
   };
 
-  const handleSaveFactoryAccess = () => {
+  const handleSaveFactoryAccess = async () => {
     if (!selectedUserForFactory) return;
     const targetUserId = selectedUserForFactory.id;
     const facIds = [...selectedFactories];
@@ -208,19 +216,18 @@ export default function AdminUsersPage() {
       setFeedbackMessage({ type: 'error', text: res.message });
       return;
     }
-    setFeedbackMessage({ type: 'success', text: res.message });
+    setFeedbackMessage({ type: 'success', text: `Factory permissions updated for ${selectedUserForFactory.full_name}.` });
     setSelectedUserForFactory(null);
-    loadData();
 
     const supabase = createClient();
     if (supabase && isSupabaseConfigured()) {
-      supabase.from('factory_access').delete().eq('user_id', targetUserId).then(() => {
-        if (facIds.length > 0) {
-          const rows = facIds.map(fId => ({ user_id: targetUserId, factory_id: fId }));
-          supabase.from('factory_access').insert(rows).then();
-        }
-      });
+      await supabase.from('factory_access').delete().eq('user_id', targetUserId);
+      if (facIds.length > 0) {
+        const rows = facIds.map(fId => ({ user_id: targetUserId, factory_id: fId }));
+        await supabase.from('factory_access').insert(rows);
+      }
     }
+    loadData();
   };
 
   const toggleFactorySelection = (factoryId: string) => {
@@ -661,46 +668,69 @@ export default function AdminUsersPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {factories.map((fac) => {
-              const assignedSupervisors = dataStore.getSupervisors(fac.id);
+          {factories.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-surface border border-border text-center space-y-3">
+              <Building2 className="w-10 h-10 text-muted-foreground mx-auto" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-foreground">No Manufacturing Facilities</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  No factory facilities have been created yet. Add your first facility to assign supervisors and track manufacturing operations.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFactoryError(null);
+                  setShowAddFactoryModal(true);
+                }}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add First Facility</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {factories.map((fac) => {
+                const assignedSupervisors = dataStore.getSupervisors(fac.id);
 
-              return (
-                <div
-                  key={fac.id}
-                  className="p-4 rounded-2xl bg-surface border border-border space-y-3 flex flex-col justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-foreground">
-                        {fac.factory_name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteFactory(fac.id, fac.factory_name)}
-                        className="p-1.5 rounded-xl bg-surface-raised hover:bg-rose-500/10 text-rose-400 transition-colors border border-border"
-                        title="Remove facility"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                return (
+                  <div
+                    key={fac.id}
+                    className="p-4 rounded-2xl bg-surface border border-border space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-foreground">
+                          {fac.factory_name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFactory(fac.id, fac.factory_name)}
+                          className="p-1.5 rounded-xl bg-surface-raised hover:bg-rose-500/10 text-rose-400 transition-colors border border-border"
+                          title="Remove facility"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {fac.address && (
+                        <p className="text-xs text-muted-foreground">
+                          {fac.address}
+                        </p>
+                      )}
                     </div>
-                    {fac.address && (
-                      <p className="text-xs text-muted-foreground">
-                        {fac.address}
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="pt-2 border-t border-divider flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>Authorized Supervisors:</span>
-                    <span className="font-semibold text-foreground">
-                      {assignedSupervisors.length}
-                    </span>
+                    <div className="pt-2 border-t border-divider flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Authorized Supervisors:</span>
+                      <span className="font-semibold text-foreground">
+                        {assignedSupervisors.length}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1029,32 +1059,63 @@ export default function AdminUsersPage() {
               Select which manufacturing facilities <span className="font-semibold text-foreground">{selectedUserForFactory.full_name}</span> is authorized to claim and supervise tables for.
             </p>
 
-            <div className="space-y-2 py-2">
-              {factories.map((fac) => {
-                const isSelected = selectedFactories.includes(fac.id);
-                return (
-                  <div
-                    key={fac.id}
-                    onClick={() => toggleFactorySelection(fac.id)}
-                    className={`p-3 rounded-2xl border cursor-pointer select-none flex items-center justify-between transition-colors ${
-                      isSelected
-                        ? 'bg-foreground text-background font-semibold border-transparent'
-                        : 'bg-surface-raised text-foreground border-border hover:bg-surface-overlay'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-xs font-semibold">{fac.factory_name}</div>
-                      {fac.address && (
-                        <div className={`text-[10px] ${isSelected ? 'text-background/80' : 'text-muted-foreground'}`}>
-                          {fac.address}
-                        </div>
-                      )}
+            {factories.length === 0 ? (
+              <div className="p-5 rounded-2xl bg-surface-raised border border-border text-center space-y-3 my-2">
+                <Building2 className="w-7 h-7 text-muted-foreground mx-auto" />
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-foreground">No Manufacturing Facilities Created</div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    You haven't created any facilities yet. Add your first facility to assign supervisors.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedUserForFactory(null);
+                    setActiveTab('factories');
+                    setFactoryError(null);
+                    setShowAddFactoryModal(true);
+                  }}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Facility Now</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 py-2 max-h-60 overflow-y-auto">
+                {factories.map((fac) => {
+                  const isSelected = selectedFactories.includes(fac.id);
+                  return (
+                    <div
+                      key={fac.id}
+                      onClick={() => toggleFactorySelection(fac.id)}
+                      className={`p-3 rounded-2xl border cursor-pointer select-none flex items-center justify-between transition-colors ${
+                        isSelected
+                          ? 'bg-foreground text-background font-semibold border-transparent'
+                          : 'bg-surface-raised text-foreground border-border hover:bg-surface-overlay'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs font-semibold truncate">{fac.factory_name}</div>
+                        {fac.address && (
+                          <div className={`text-[10px] truncate ${isSelected ? 'text-background/80' : 'text-muted-foreground'}`}>
+                            {fac.address}
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        {isSelected ? (
+                          <Check className="w-4 h-4 text-background" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full border border-border" />
+                        )}
+                      </div>
                     </div>
-                    {isSelected && <Check className="w-4 h-4" />}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="flex justify-end space-x-2 pt-2 border-t border-divider">
               <button
@@ -1064,13 +1125,15 @@ export default function AdminUsersPage() {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleSaveFactoryAccess}
-                className="min-h-[40px] px-5 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90"
-              >
-                Save Permissions
-              </button>
+              {factories.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSaveFactoryAccess}
+                  className="min-h-[40px] px-5 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90"
+                >
+                  Save Permissions
+                </button>
+              )}
             </div>
           </div>
         </div>

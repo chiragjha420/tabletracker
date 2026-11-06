@@ -29,7 +29,7 @@ export default function CreateTablePage() {
   const { currentUser } = useUser();
 
   const factories = dataStore.getFactories();
-  const defaultFactoryId = factories[0]?.id || 'fac-1';
+  const [selectedFactoryId, setSelectedFactoryId] = useState<string>(() => factories[0]?.id || '');
 
   const [tableName, setTableName] = useState('');
   const [tableType, setTableType] = useState<TableType>('Snooker');
@@ -103,7 +103,7 @@ export default function CreateTablePage() {
         table_type: tableType,
         reference_photo_path: referencePhoto,
         salesperson_id: currentUser.id,
-        factory_id: defaultFactoryId, // Auto-assigned without requiring salesperson selection
+        factory_id: selectedFactoryId || factories[0]?.id || 'fac-default',
         checklist: checklist.map((t) => ({
           task_name: t.task_name.trim(),
           remark: t.remark.trim() || undefined,
@@ -189,6 +189,26 @@ export default function CreateTablePage() {
               ))}
             </div>
           </div>
+
+          {/* Optional Facility Selector if Admin configured multiple facilities */}
+          {factories.length > 1 && (
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                Manufacturing Facility
+              </label>
+              <select
+                value={selectedFactoryId}
+                onChange={(e) => setSelectedFactoryId(e.target.value)}
+                className="w-full min-h-[44px] text-xs sm:text-sm px-3.5 py-2.5 rounded-xl bg-surface-raised text-foreground border border-border focus:outline-none focus:border-neutral-500 transition-colors"
+              >
+                {factories.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.factory_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Production Checklist Builder */}

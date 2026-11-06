@@ -198,8 +198,12 @@ async function runStagingTestSuite() {
   console.log('\n--- 3. PRODUCTION WORKFLOW & DISPATCH GATEKEEPER AUDIT ---');
 
   // Factory setup
-  const factories = dataStore.getFactories();
-  const targetFactoryId = factories[0].id;
+  const facRes = dataStore.addFactory(
+    { factory_name: 'Staging Assembly Unit', address: 'Plot 10, Industrial Hub' },
+    adminUser.id
+  );
+  assert(facRes.success && !!facRes.factory, 'Admin creates manufacturing facility');
+  const targetFactoryId = facRes.factory!.id;
   dataStore.setUserFactoryAccess(supervisorUser.id, [targetFactoryId], adminUser.id);
   dataStore.setUserFactoryAccess(supervisorUser2.id, [targetFactoryId], adminUser.id);
 
